@@ -1052,6 +1052,7 @@ tbody td {
         <button class="btn btn-sm" onclick="openPeriodModal()">📅 Balance</button>
         <button class="btn btn-sm btn-primary" onclick="document.getElementById('csvInput').click()">📁 CSV</button>
         <input type="file" id="csvInput" accept=".csv,.tsv,.xlsx" onchange="handleFileImport(event)">
+        <button class="btn btn-sm" onclick="generatePDFReport()" style="background:linear-gradient(135deg,#ff7675,#fd79a8);border:none;color:white;">📄 Reporte PDF</button>
         <button class="btn btn-sm" onclick="exportData()">💾</button>
         <button class="btn btn-sm btn-danger" onclick="deleteCurrentProfile()">🗑</button>
       </div>
@@ -1090,11 +1091,12 @@ tbody td {
           </div>
         </div>
 
-        <div class="tabs">
+        <div class="tabs" style="flex-wrap:wrap;">
           <button class="tab active" onclick="switchTab('overview', this)">Resumen</button>
           <button class="tab" onclick="switchTab('posts', this)">Publicaciones</button>
           <button class="tab" onclick="switchTab('top', this)">Top ⭐</button>
           <button class="tab" onclick="switchTab('insights', this)">📊 Insights</button>
+          <button class="tab" onclick="switchTab('hashtags', this)"># Hashtags</button>
           <button class="tab" onclick="switchTab('calendar', this)">📅 Calendario</button>
           <button class="tab" onclick="switchTab('goals', this)">🎯 Objetivos</button>
           <button class="tab" onclick="switchTab('growth', this)">Crecimiento</button>
@@ -1147,9 +1149,9 @@ tbody td {
             <table>
               <thead>
                 <tr>
-                  <th>Fecha</th><th>Título</th><th>Tipo</th>
+                  <th>Fecha</th><th>Título</th><th>Tipo</th><th>🏷️</th>
                   <th>❤️</th><th>💬</th><th>🔄</th><th>🔖</th>
-                  <th>👁 Alcance</th><th>📊 Impr.</th><th>Eng. Rate</th><th></th>
+                  <th>👁 Alcance</th><th>📊 Impr.</th><th>Eng. Rate</th><th>📝</th><th></th>
                 </tr>
               </thead>
               <tbody id="postsTableBody"></tbody>
@@ -1207,6 +1209,32 @@ tbody td {
                 </tr>
               </thead>
               <tbody id="formatTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HASHTAGS TAB -->
+        <div id="tab-hashtags" style="display:none;">
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent)"></span> Top 10 Hashtags por Engagement</h3>
+              <canvas id="hashtagEngChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent-tertiary)"></span> Frecuencia de Uso</h3>
+              <canvas id="hashtagFreqChart"></canvas>
+            </div>
+          </div>
+          <div class="table-card">
+            <h3># Análisis de Hashtags</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Hashtag</th><th>Veces Usado</th><th>Eng. Promedio</th>
+                  <th>Alcance Prom.</th><th>Eng. Rate Prom.</th><th>Rendimiento</th>
+                </tr>
+              </thead>
+              <tbody id="hashtagTableBody"></tbody>
             </table>
           </div>
         </div>
@@ -1351,6 +1379,14 @@ tbody td {
     <div class="form-row">
       <div class="form-group"><label>👁 Alcance</label><input type="number" id="postReach" value="0"></div>
       <div class="form-group"><label>📊 Impresiones</label><input type="number" id="postImpressions" value="0"></div>
+    </div>
+    <div class="form-group">
+      <label>🏷️ Etiquetas (separadas por coma)</label>
+      <input type="text" id="postTags" placeholder="Ej: orgánico, colaboración, boosteado">
+    </div>
+    <div class="form-group">
+      <label>📝 Nota</label>
+      <input type="text" id="postNote" placeholder="Ej: Se boosteó con $500 por 3 días">
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeManualModal()">Cancelar</button>
@@ -2152,13 +2188,16 @@ function renderPostsTable() {
   tbody.innerHTML = posts.map(p => {
     const eng = p.likes + p.comments + p.shares + p.saves;
     const rate = p.reach > 0 ? ((eng / p.reach) * 100).toFixed(2) : '0.00';
+    const tags = (p.tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.65rem;background:rgba(108,92,231,0.15);color:var(--accent-secondary);margin:1px;">${t}</span>`).join('');
     return `<tr>
-      <td>${p.date}</td><td>${p.title}</td>
+      <td>${p.date}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${p.title}</td>
       <td><span class="post-type-badge ${p.type}">${p.type}</span></td>
+      <td style="max-width:120px;">${tags || '<span style="color:var(--text-muted);font-size:0.7rem;">—</span>'}</td>
       <td>${p.likes.toLocaleString()}</td><td>${p.comments.toLocaleString()}</td>
       <td>${p.shares.toLocaleString()}</td><td>${p.saves.toLocaleString()}</td>
       <td>${p.reach.toLocaleString()}</td><td>${p.impressions.toLocaleString()}</td>
       <td><strong>${rate}%</strong></td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;font-size:0.72rem;color:var(--text-muted);" title="${p.note || ''}">${p.note || '—'}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deletePost(${p.id})">✕</button></td>
     </tr>`;
   }).join('');
@@ -2324,12 +2363,13 @@ function renderGrowth() {
 function switchTab(tab, el) {
   document.querySelectorAll('#profile-view .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['overview', 'posts', 'top', 'insights', 'calendar', 'goals', 'growth'].forEach(t => {
+  ['overview', 'posts', 'top', 'insights', 'hashtags', 'calendar', 'goals', 'growth'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   if (tab === 'posts') renderPostsTable();
   if (tab === 'top') renderTopContent();
   if (tab === 'insights') renderInsights();
+  if (tab === 'hashtags') renderHashtags();
   if (tab === 'calendar') renderCalendar();
   if (tab === 'goals') renderGoals();
   if (tab === 'growth') renderGrowth();
@@ -2397,6 +2437,7 @@ function openPeriodModal() { document.getElementById('periodModal').classList.ad
 function closePeriodModal() { document.getElementById('periodModal').classList.remove('active'); }
 
 function savePost() {
+  const tagsRaw = document.getElementById('postTags').value.trim();
   const post = {
     id: Date.now(),
     date: document.getElementById('postDate').value,
@@ -2408,6 +2449,8 @@ function savePost() {
     saves: parseInt(document.getElementById('postSaves').value) || 0,
     reach: parseInt(document.getElementById('postReach').value) || 0,
     impressions: parseInt(document.getElementById('postImpressions').value) || 0,
+    tags: tagsRaw ? tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(t => t) : [],
+    note: document.getElementById('postNote').value.trim() || '',
   };
   const posts = loadPosts();
   posts.push(post);
@@ -3110,6 +3153,303 @@ function renderGoals() {
       ${estimateStr ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;">⏱ ${estimateStr}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+// ========== HASHTAG TRACKER ==========
+function extractHashtags(text) {
+  if (!text) return [];
+  const matches = text.match(/#[\w\u00C0-\u024Fáéíóúñ]+/gi);
+  return matches ? matches.map(h => h.toLowerCase()) : [];
+}
+
+function renderHashtags() {
+  const posts = getFilteredPosts();
+  const hashMap = {};
+
+  posts.forEach(p => {
+    // Extract from title/description
+    const tags = extractHashtags(p.title);
+    const eng = p.likes + p.comments + p.shares + p.saves;
+    tags.forEach(tag => {
+      if (!hashMap[tag]) hashMap[tag] = { count: 0, totalEng: 0, totalReach: 0, posts: [] };
+      hashMap[tag].count++;
+      hashMap[tag].totalEng += eng;
+      hashMap[tag].totalReach += p.reach;
+      hashMap[tag].posts.push(p);
+    });
+  });
+
+  const sorted = Object.entries(hashMap)
+    .map(([tag, data]) => ({
+      tag,
+      count: data.count,
+      avgEng: Math.round(data.totalEng / data.count),
+      avgReach: Math.round(data.totalReach / data.count),
+      avgEngRate: data.totalReach > 0 ? ((data.totalEng / data.totalReach) * 100).toFixed(2) : '0.00',
+    }))
+    .sort((a, b) => b.avgEng - a.avgEng);
+
+  if (sorted.length === 0) {
+    document.getElementById('hashtagTableBody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px;">No se encontraron hashtags en las descripciones.<br>Los hashtags se extraen automáticamente del título/descripción de cada post.</td></tr>`;
+
+    destroyChart('hashtagEng');
+    destroyChart('hashtagFreq');
+    return;
+  }
+
+  const top10 = sorted.slice(0, 10);
+  const globalAvgEng = posts.length > 0
+    ? posts.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0) / posts.length
+    : 0;
+
+  // Engagement chart
+  destroyChart('hashtagEng');
+  const horizontalOpts = {
+    responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(42,42,58,0.5)' } },
+      y: { ticks: { color: '#8888a0', font: { family: 'Sora', size: 10 } }, grid: { display: false } }
+    }
+  };
+
+  charts.hashtagEng = new Chart(document.getElementById('hashtagEngChart'), {
+    type: 'bar',
+    data: {
+      labels: top10.map(h => h.tag),
+      datasets: [{
+        label: 'Eng. Promedio',
+        data: top10.map(h => h.avgEng),
+        backgroundColor: top10.map(h => h.avgEng >= globalAvgEng ? '#00b894' : '#ff7675'),
+        borderRadius: 8
+      }]
+    },
+    options: horizontalOpts
+  });
+
+  // Frequency chart
+  destroyChart('hashtagFreq');
+  const freqSorted = [...sorted].sort((a, b) => b.count - a.count).slice(0, 10);
+  charts.hashtagFreq = new Chart(document.getElementById('hashtagFreqChart'), {
+    type: 'bar',
+    data: {
+      labels: freqSorted.map(h => h.tag),
+      datasets: [{
+        label: 'Veces usado',
+        data: freqSorted.map(h => h.count),
+        backgroundColor: '#6c5ce7',
+        borderRadius: 8
+      }]
+    },
+    options: horizontalOpts
+  });
+
+  // Table
+  const tbody = document.getElementById('hashtagTableBody');
+  tbody.innerHTML = sorted.map(h => {
+    const performance = h.avgEng >= globalAvgEng * 1.2 ? '🟢 Alto'
+      : h.avgEng >= globalAvgEng * 0.8 ? '🟡 Promedio' : '🔴 Bajo';
+    return `<tr>
+      <td><strong style="color:var(--accent)">${h.tag}</strong></td>
+      <td>${h.count}</td>
+      <td>${h.avgEng.toLocaleString()}</td>
+      <td>${h.avgReach.toLocaleString()}</td>
+      <td>${h.avgEngRate}%</td>
+      <td>${performance}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ========== PDF REPORT ==========
+function generatePDFReport() {
+  const profile = getCurrentProfile();
+  if (!profile) return;
+
+  const posts = getFilteredPosts();
+  const periods = loadPeriods();
+  if (posts.length === 0) { showToast('⚠️ Sin datos para el reporte'); return; }
+
+  const totalLikes = posts.reduce((s, p) => s + p.likes, 0);
+  const totalComments = posts.reduce((s, p) => s + p.comments, 0);
+  const totalShares = posts.reduce((s, p) => s + p.shares, 0);
+  const totalSaves = posts.reduce((s, p) => s + p.saves, 0);
+  const totalReach = posts.reduce((s, p) => s + p.reach, 0);
+  const totalImpressions = posts.reduce((s, p) => s + p.impressions, 0);
+  const totalEng = totalLikes + totalComments + totalShares + totalSaves;
+  const avgEngRate = totalReach > 0 ? ((totalEng / totalReach) * 100).toFixed(2) : '0.00';
+  const followers = periods.length > 0 ? periods[periods.length - 1].followers : 'N/A';
+
+  // Top 5 posts
+  const ranked = [...posts].map(p => ({
+    ...p,
+    engagement: p.likes + p.comments + p.shares + p.saves,
+  })).sort((a, b) => b.engagement - a.engagement).slice(0, 5);
+
+  // Type breakdown
+  const byType = {};
+  posts.forEach(p => { byType[p.type] = (byType[p.type] || 0) + 1; });
+
+  // Best day
+  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const dayData = Array(7).fill(null).map(() => ({ total: 0, count: 0 }));
+  posts.forEach(p => {
+    if (!p.date) return;
+    const d = new Date(p.date + 'T12:00:00');
+    const eng = p.likes + p.comments + p.shares + p.saves;
+    dayData[d.getDay()].total += eng;
+    dayData[d.getDay()].count++;
+  });
+  const dayAvg = dayData.map(d => d.count > 0 ? Math.round(d.total / d.count) : 0);
+  const bestDay = days[dayAvg.indexOf(Math.max(...dayAvg))];
+
+  // Date range
+  const dates = posts.map(p => p.date).filter(d => d).sort();
+  const dateFrom = dates[0] || '—';
+  const dateTo = dates[dates.length - 1] || '—';
+
+  const fmt = (n) => typeof n === 'number' ? n.toLocaleString() : n;
+
+  const reportHTML = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Reporte — ${profile.name}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Sora', sans-serif; background: #0a0a0f; color: #f0f0f5; padding: 40px; }
+.report { max-width: 800px; margin: 0 auto; }
+.header { text-align: center; padding: 40px 0 30px; border-bottom: 2px solid #2a2a3a; margin-bottom: 30px; }
+.header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+.header h1 span { color: #e84393; }
+.header .subtitle { color: #8888a0; font-size: 0.9rem; }
+.header .period { color: #6c5ce7; font-size: 0.85rem; margin-top: 8px; font-weight: 600; }
+.section { margin-bottom: 30px; }
+.section h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #2a2a3a; }
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.kpi { background: #12121a; border: 1px solid #2a2a3a; border-radius: 12px; padding: 16px; text-align: center; }
+.kpi .label { font-size: 0.7rem; color: #8888a0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.kpi .value { font-size: 1.4rem; font-weight: 800; font-family: 'Space Mono', monospace; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+th { text-align: left; padding: 10px; color: #8888a0; font-size: 0.7rem; text-transform: uppercase; border-bottom: 1px solid #2a2a3a; }
+td { padding: 10px; border-bottom: 1px solid rgba(42,42,58,0.5); }
+.badge { padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+.badge.reel { background: rgba(232,67,147,0.15); color: #e84393; }
+.badge.carousel { background: rgba(108,92,231,0.15); color: #6c5ce7; }
+.badge.image { background: rgba(0,206,201,0.15); color: #00cec9; }
+.badge.story { background: rgba(253,203,110,0.15); color: #fdcb6e; }
+.insight-box { background: #12121a; border: 1px solid #2a2a3a; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+.insight-box .title { font-weight: 600; margin-bottom: 6px; }
+.insight-box .detail { color: #8888a0; font-size: 0.85rem; }
+.footer { text-align: center; color: #55556a; font-size: 0.75rem; padding-top: 30px; border-top: 1px solid #2a2a3a; margin-top: 30px; }
+.print-btn { position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: linear-gradient(135deg, #e84393, #6c5ce7); color: white; border: none; border-radius: 10px; font-family: 'Sora'; font-size: 0.9rem; font-weight: 600; cursor: pointer; z-index: 100; }
+.print-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,67,147,0.3); }
+@media print { .print-btn { display: none; } body { padding: 20px; } }
+</style></head><body>
+<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+<div class="report">
+  <div class="header">
+    <h1>📊 Reporte — <span>${profile.name}</span></h1>
+    <div class="subtitle">${profile.handle} · ${profile.niche || 'Sin nicho'}</div>
+    <div class="period">Período: ${dateFrom} → ${dateTo}</div>
+  </div>
+
+  <div class="section">
+    <h2>📈 Métricas Generales</h2>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Seguidores</div><div class="value">${fmt(followers)}</div></div>
+      <div class="kpi"><div class="label">Total Posts</div><div class="value">${posts.length}</div></div>
+      <div class="kpi"><div class="label">Engagement Total</div><div class="value">${fmt(totalEng)}</div></div>
+      <div class="kpi"><div class="label">Eng. Rate Prom.</div><div class="value">${avgEngRate}%</div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Likes</div><div class="value">${fmt(totalLikes)}</div></div>
+      <div class="kpi"><div class="label">Comentarios</div><div class="value">${fmt(totalComments)}</div></div>
+      <div class="kpi"><div class="label">Shares</div><div class="value">${fmt(totalShares)}</div></div>
+      <div class="kpi"><div class="label">Saves</div><div class="value">${fmt(totalSaves)}</div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Alcance Total</div><div class="value">${fmt(totalReach)}</div></div>
+      <div class="kpi"><div class="label">Impresiones</div><div class="value">${fmt(totalImpressions)}</div></div>
+      <div class="kpi"><div class="label">Alcance/Post</div><div class="value">${fmt(Math.round(totalReach / posts.length))}</div></div>
+      <div class="kpi"><div class="label">Mejor Día</div><div class="value" style="font-size:1rem;">${bestDay}</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📊 Distribución por Formato</h2>
+    <div class="kpi-row">
+      ${Object.entries(byType).map(([type, count]) => `
+        <div class="kpi"><div class="label">${type}</div><div class="value">${count}</div></div>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🏆 Top 5 — Contenido Estrella</h2>
+    <table>
+      <thead><tr><th>#</th><th>Título</th><th>Tipo</th><th>Engagement</th><th>Alcance</th><th>Eng. Rate</th></tr></thead>
+      <tbody>
+        ${ranked.map((p, i) => {
+          const eng = p.engagement;
+          const rate = p.reach > 0 ? ((eng / p.reach) * 100).toFixed(2) : '0.00';
+          const shortTitle = p.title.length > 45 ? p.title.slice(0, 42) + '…' : p.title;
+          return `<tr>
+            <td><strong>${i + 1}</strong></td>
+            <td>${shortTitle}</td>
+            <td><span class="badge ${p.type}">${p.type}</span></td>
+            <td><strong>${fmt(eng)}</strong></td>
+            <td>${fmt(p.reach)}</td>
+            <td>${rate}%</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>💡 Insights y Recomendaciones</h2>
+    <div class="insight-box">
+      <div class="title">📅 Mejor día para publicar</div>
+      <div class="detail">${bestDay} tiene el engagement promedio más alto. Recomendamos concentrar el contenido más importante en este día.</div>
+    </div>
+    <div class="insight-box">
+      <div class="title">📊 Formato más efectivo</div>
+      <div class="detail">${(() => {
+        const typeEng = {};
+        posts.forEach(p => {
+          if (!typeEng[p.type]) typeEng[p.type] = { total: 0, count: 0 };
+          typeEng[p.type].total += p.likes + p.comments + p.shares + p.saves;
+          typeEng[p.type].count++;
+        });
+        const best = Object.entries(typeEng).sort((a, b) => (b[1].total / b[1].count) - (a[1].total / a[1].count))[0];
+        return best ? \`Los <strong>\${best[0]}s</strong> tienen el mayor engagement promedio (\${Math.round(best[1].total / best[1].count)} por post). Recomendamos priorizar este formato.\` : 'Sin datos suficientes.';
+      })()}</div>
+    </div>
+    <div class="insight-box">
+      <div class="title">💾 Contenido más guardado</div>
+      <div class="detail">${(() => {
+        const mostSaved = [...posts].sort((a, b) => b.saves - a.saves)[0];
+        return mostSaved && mostSaved.saves > 0
+          ? \`El post "<strong>\${mostSaved.title.slice(0, 50)}</strong>" fue el más guardado (\${mostSaved.saves} saves). Este tipo de contenido de valor genera guardados — apostar por más contenido similar.\`
+          : 'Sin datos de saves.';
+      })()}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Generado por Balance Dashboard · ${new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+  </div>
+</div>
+</body></html>`;
+
+  const blob = new Blob([reportHTML], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    showToast('⚠️ Habilitá pop-ups para ver el reporte');
+  } else {
+    showToast('📄 Reporte generado — usá Ctrl+P para guardar como PDF');
+  }
 }
 
 // ========== INIT ==========
