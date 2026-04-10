@@ -912,6 +912,112 @@ tbody td {
   font-family: 'Space Mono', monospace;
 }
 
+/* ALERTS */
+.alert-bar {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: alertSlide 0.4s ease;
+}
+
+@keyframes alertSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-bar.success {
+  background: rgba(0,184,148,0.1);
+  border: 1px solid rgba(0,184,148,0.3);
+  color: var(--success);
+}
+
+.alert-bar.warning {
+  background: rgba(253,203,110,0.1);
+  border: 1px solid rgba(253,203,110,0.3);
+  color: var(--warning);
+}
+
+.alert-bar.danger {
+  background: rgba(255,118,117,0.1);
+  border: 1px solid rgba(255,118,117,0.3);
+  color: var(--danger);
+}
+
+.alert-bar.info {
+  background: rgba(108,92,231,0.1);
+  border: 1px solid rgba(108,92,231,0.3);
+  color: var(--accent-secondary);
+}
+
+/* COMPARE */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.compare-col {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.compare-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  padding-top: 40px;
+}
+
+.compare-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(42,42,58,0.5);
+}
+
+.compare-row:last-child { border: none; }
+
+.compare-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.compare-value {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.compare-change {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.compare-change.up { background: rgba(0,184,148,0.15); color: var(--success); }
+.compare-change.down { background: rgba(255,118,117,0.15); color: var(--danger); }
+.compare-change.neutral { background: rgba(136,136,160,0.15); color: var(--text-secondary); }
+
+@media (max-width: 768px) {
+  .compare-grid { grid-template-columns: 1fr; }
+  .compare-vs { padding: 10px 0; }
+}
+
 /* SCROLL */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1091,8 +1197,13 @@ tbody td {
           </div>
         </div>
 
+        <!-- ALERTS -->
+        <div id="alertsContainer" style="margin-bottom:16px;"></div>
+
         <div class="tabs" style="flex-wrap:wrap;">
           <button class="tab active" onclick="switchTab('overview', this)">Resumen</button>
+          <button class="tab" onclick="switchTab('weekly', this)">📋 Semanal</button>
+          <button class="tab" onclick="switchTab('compare', this)">⚖️ Comparar</button>
           <button class="tab" onclick="switchTab('posts', this)">Publicaciones</button>
           <button class="tab" onclick="switchTab('top', this)">Top ⭐</button>
           <button class="tab" onclick="switchTab('insights', this)">📊 Insights</button>
@@ -1104,6 +1215,41 @@ tbody td {
 
         <div id="tab-overview">
           <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- WEEKLY SUMMARY TAB -->
+        <div id="tab-weekly" style="display:none;">
+          <div class="kpi-grid" id="weeklyKpiGrid"></div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent)"></span> Engagement diario (última semana)</h3>
+              <canvas id="weeklyEngChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent-secondary)"></span> Alcance diario (última semana)</h3>
+              <canvas id="weeklyReachChart"></canvas>
+            </div>
+          </div>
+          <div class="table-card">
+            <h3>📋 Posts de la última semana</h3>
+            <table>
+              <thead>
+                <tr><th>Fecha</th><th>Título</th><th>Tipo</th><th>❤️</th><th>💬</th><th>🔄</th><th>🔖</th><th>Eng. Rate</th></tr>
+              </thead>
+              <tbody id="weeklyTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- COMPARE TAB -->
+        <div id="tab-compare" style="display:none;">
+          <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:0.8rem;color:var(--text-secondary);font-weight:500;">Comparar:</span>
+            <select class="filter-select" id="comparePeriod1" onchange="renderCompare()"></select>
+            <span style="color:var(--text-muted);">vs</span>
+            <select class="filter-select" id="comparePeriod2" onchange="renderCompare()"></select>
+          </div>
+          <div id="compareContent"></div>
+        </div>
           <div class="charts-row">
             <div class="chart-card">
               <h3><span class="dot"></span> Engagement por Publicación</h3>
@@ -2051,6 +2197,7 @@ function renderDashboard() {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
+  renderAlerts();
   const filtered = getFilteredPosts();
   renderKPIs(filtered);
   renderOverviewCharts(filtered);
@@ -2363,7 +2510,7 @@ function renderGrowth() {
 function switchTab(tab, el) {
   document.querySelectorAll('#profile-view .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['overview', 'posts', 'top', 'insights', 'hashtags', 'calendar', 'goals', 'growth'].forEach(t => {
+  ['overview', 'weekly', 'compare', 'posts', 'top', 'insights', 'hashtags', 'calendar', 'goals', 'growth'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   if (tab === 'posts') renderPostsTable();
@@ -2373,6 +2520,8 @@ function switchTab(tab, el) {
   if (tab === 'calendar') renderCalendar();
   if (tab === 'goals') renderGoals();
   if (tab === 'growth') renderGrowth();
+  if (tab === 'weekly') renderWeekly();
+  if (tab === 'compare') renderCompare();
 }
 
 // ========== FOLLOWERS MINI-MODAL (auto-balance) ==========
@@ -3453,6 +3602,282 @@ td { padding: 10px; border-bottom: 1px solid rgba(42,42,58,0.5); }
   } else {
     showToast('📄 Reporte generado — usá Ctrl+P para guardar como PDF');
   }
+}
+
+// ========== ALERTS ==========
+function renderAlerts() {
+  const posts = loadPosts();
+  const periods = loadPeriods();
+  const container = document.getElementById('alertsContainer');
+  if (!container) return;
+
+  const alerts = [];
+  const today = new Date();
+  const fmt = (d) => d.toISOString().slice(0, 10);
+
+  // Check: no posts in last 7 days
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const recentPosts = posts.filter(p => p.date >= fmt(weekAgo));
+  if (posts.length > 0 && recentPosts.length === 0) {
+    alerts.push({ type: 'warning', icon: '⚠️', text: 'No se publicó nada en los últimos 7 días. ¡La constancia es clave!' });
+  }
+
+  // Check: engagement drop (compare last 5 posts vs previous 5)
+  if (posts.length >= 10) {
+    const sorted = [...posts].sort((a, b) => b.date.localeCompare(a.date));
+    const last5 = sorted.slice(0, 5);
+    const prev5 = sorted.slice(5, 10);
+    const avgLast = last5.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0) / 5;
+    const avgPrev = prev5.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0) / 5;
+    const change = avgPrev > 0 ? ((avgLast - avgPrev) / avgPrev * 100) : 0;
+
+    if (change <= -20) {
+      alerts.push({ type: 'danger', icon: '📉', text: 'El engagement bajó un ' + Math.abs(Math.round(change)) + '% en las últimas publicaciones vs las anteriores.' });
+    } else if (change >= 20) {
+      alerts.push({ type: 'success', icon: '📈', text: '¡El engagement subió un ' + Math.round(change) + '% en las últimas publicaciones!' });
+    }
+  }
+
+  // Check: goals met
+  const goals = getCurrentProfile()?.targets || [];
+  goals.forEach(g => {
+    let current = 0;
+    const n = posts.length;
+    if (g.metric === 'followers' && periods.length > 0) current = periods[periods.length - 1].followers;
+    else if (g.metric === 'engRate' && n > 0) {
+      const te = posts.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0);
+      const tr = posts.reduce((s, p) => s + p.reach, 0);
+      current = tr > 0 ? (te / tr * 100) : 0;
+    } else if (g.metric === 'likes' && n > 0) current = posts.reduce((s, p) => s + p.likes, 0) / n;
+    else if (g.metric === 'reach' && n > 0) current = posts.reduce((s, p) => s + p.reach, 0) / n;
+    else if (g.metric === 'posts') current = n;
+
+    if (current >= g.target) {
+      alerts.push({ type: 'success', icon: '🎉', text: '¡Meta alcanzada! ' + (g.note || g.metric) + ' — superaste el objetivo.' });
+    } else if (g.deadline && g.deadline < fmt(today) && current < g.target) {
+      alerts.push({ type: 'danger', icon: '⏰', text: 'Meta vencida: ' + (g.note || g.metric) + ' — no se alcanzó antes de la fecha límite.' });
+    }
+  });
+
+  // Check: follower growth between last 2 periods
+  if (periods.length >= 2) {
+    const last = periods[periods.length - 1];
+    const prev = periods[periods.length - 2];
+    if (last.followers < prev.followers) {
+      alerts.push({ type: 'danger', icon: '👥', text: 'Se perdieron ' + (prev.followers - last.followers) + ' seguidores respecto al período anterior.' });
+    } else if (last.newFollowers > 0) {
+      alerts.push({ type: 'info', icon: '👥', text: '+' + last.newFollowers + ' seguidores nuevos en el último período registrado.' });
+    }
+  }
+
+  if (alerts.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = alerts.map(a =>
+    '<div class="alert-bar ' + a.type + '">' + a.icon + ' ' + a.text + '</div>'
+  ).join('');
+}
+
+// ========== WEEKLY SUMMARY ==========
+function renderWeekly() {
+  const allPosts = loadPosts();
+  const today = new Date();
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekStr = weekAgo.toISOString().slice(0, 10);
+  const todayStr = today.toISOString().slice(0, 10);
+
+  const weekPosts = allPosts.filter(p => p.date >= weekStr && p.date <= todayStr);
+
+  const totalLikes = weekPosts.reduce((s, p) => s + p.likes, 0);
+  const totalComments = weekPosts.reduce((s, p) => s + p.comments, 0);
+  const totalShares = weekPosts.reduce((s, p) => s + p.shares, 0);
+  const totalSaves = weekPosts.reduce((s, p) => s + p.saves, 0);
+  const totalEng = totalLikes + totalComments + totalShares + totalSaves;
+  const totalReach = weekPosts.reduce((s, p) => s + p.reach, 0);
+  const avgEngRate = totalReach > 0 ? ((totalEng / totalReach) * 100).toFixed(2) : '0.00';
+
+  // Compare with previous week
+  const twoWeeksAgo = new Date(weekAgo);
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 7);
+  const prevWeekPosts = allPosts.filter(p => p.date >= twoWeeksAgo.toISOString().slice(0, 10) && p.date < weekStr);
+  const prevEng = prevWeekPosts.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0);
+
+  const engChange = prevEng > 0 ? (((totalEng - prevEng) / prevEng) * 100).toFixed(1) : '0';
+  const changeClass = parseFloat(engChange) > 0 ? 'up' : parseFloat(engChange) < 0 ? 'down' : '';
+  const changeIcon = parseFloat(engChange) > 0 ? '↑' : parseFloat(engChange) < 0 ? '↓' : '=';
+
+  const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n.toLocaleString();
+
+  document.getElementById('weeklyKpiGrid').innerHTML = [
+    { label: 'Posts esta semana', value: weekPosts.length },
+    { label: 'Engagement total', value: fmt(totalEng) },
+    { label: 'Alcance total', value: fmt(totalReach) },
+    { label: 'Eng. Rate', value: avgEngRate + '%' },
+    { label: 'Likes', value: fmt(totalLikes) },
+    { label: 'Comentarios', value: fmt(totalComments) },
+    { label: 'Shares', value: fmt(totalShares) },
+    { label: 'vs Semana anterior', value: changeIcon + ' ' + Math.abs(engChange) + '%' },
+  ].map(k => '<div class="kpi-card"><div class="kpi-label">' + k.label + '</div><div class="kpi-value">' + k.value + '</div></div>').join('');
+
+  // Daily chart for the week
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const dayLabels = days.map(d => {
+    const dt = new Date(d + 'T12:00:00');
+    return dt.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' });
+  });
+
+  const dayEng = days.map(d => {
+    const dp = weekPosts.filter(p => p.date === d);
+    return dp.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0);
+  });
+
+  const dayReach = days.map(d => {
+    const dp = weekPosts.filter(p => p.date === d);
+    return dp.reduce((s, p) => s + p.reach, 0);
+  });
+
+  destroyChart('weeklyEng');
+  charts.weeklyEng = new Chart(document.getElementById('weeklyEngChart'), {
+    type: 'bar',
+    data: {
+      labels: dayLabels,
+      datasets: [{ label: 'Engagement', data: dayEng, backgroundColor: '#e84393', borderRadius: 8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8888a0', font: { family: 'Sora', size: 10 } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(42,42,58,0.5)' } }
+      }
+    }
+  });
+
+  destroyChart('weeklyReach');
+  charts.weeklyReach = new Chart(document.getElementById('weeklyReachChart'), {
+    type: 'bar',
+    data: {
+      labels: dayLabels,
+      datasets: [{ label: 'Alcance', data: dayReach, backgroundColor: '#6c5ce7', borderRadius: 8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8888a0', font: { family: 'Sora', size: 10 } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(42,42,58,0.5)' } }
+      }
+    }
+  });
+
+  // Table
+  const sorted = [...weekPosts].sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById('weeklyTableBody').innerHTML = sorted.length > 0
+    ? sorted.map(p => {
+        const eng = p.likes + p.comments + p.shares + p.saves;
+        const rate = p.reach > 0 ? ((eng / p.reach) * 100).toFixed(2) : '0.00';
+        return '<tr><td>' + p.date + '</td><td>' + p.title + '</td><td><span class="post-type-badge ' + p.type + '">' + p.type + '</span></td><td>' + p.likes + '</td><td>' + p.comments + '</td><td>' + p.shares + '</td><td>' + p.saves + '</td><td><strong>' + rate + '%</strong></td></tr>';
+      }).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px;">Sin publicaciones esta semana</td></tr>';
+}
+
+// ========== COMPARE PERIODS ==========
+function renderCompare() {
+  const periods = loadPeriods();
+  const posts = loadPosts();
+  const content = document.getElementById('compareContent');
+  const sel1 = document.getElementById('comparePeriod1');
+  const sel2 = document.getElementById('comparePeriod2');
+
+  // Populate selects if empty
+  if (sel1.options.length === 0 || sel1.options.length !== periods.length) {
+    sel1.innerHTML = periods.map((p, i) => '<option value="' + i + '"' + (i === periods.length - 1 ? ' selected' : '') + '>' + p.name + '</option>').join('');
+    sel2.innerHTML = periods.map((p, i) => '<option value="' + i + '"' + (i === Math.max(0, periods.length - 2) ? ' selected' : '') + '>' + p.name + '</option>').join('');
+  }
+
+  if (periods.length < 2) {
+    content.innerHTML = '<div class="empty-state" style="padding:40px;"><div class="icon">⚖️</div><h2>Necesitás al menos 2 balances</h2><p>Cargá otro balance de período para poder comparar. Cada vez que importes un CSV nuevo se crea uno automáticamente.</p></div>';
+    return;
+  }
+
+  const idx1 = parseInt(sel1.value);
+  const idx2 = parseInt(sel2.value);
+  const p1 = periods[idx1];
+  const p2 = periods[idx2];
+
+  if (!p1 || !p2) return;
+
+  // Get posts for each period
+  const posts1 = posts.filter(p => p.date >= p1.start && p.date <= p1.end);
+  const posts2 = posts.filter(p => p.date >= p2.start && p.date <= p2.end);
+
+  function calcStats(periodPosts, period) {
+    const n = periodPosts.length;
+    const totalEng = periodPosts.reduce((s, p) => s + p.likes + p.comments + p.shares + p.saves, 0);
+    const totalReach = periodPosts.reduce((s, p) => s + p.reach, 0);
+    const totalLikes = periodPosts.reduce((s, p) => s + p.likes, 0);
+    const totalSaves = periodPosts.reduce((s, p) => s + p.saves, 0);
+    return {
+      posts: n,
+      followers: period.followers,
+      newFollowers: period.newFollowers,
+      likes: totalLikes,
+      engagement: totalEng,
+      reach: totalReach,
+      saves: totalSaves,
+      engRate: totalReach > 0 ? ((totalEng / totalReach) * 100).toFixed(2) : '0.00',
+    };
+  }
+
+  const s1 = calcStats(posts1, p1);
+  const s2 = calcStats(posts2, p2);
+
+  function changeTag(v1, v2) {
+    if (v1 === 0 && v2 === 0) return '<span class="compare-change neutral">=</span>';
+    const pct = v2 !== 0 ? (((v1 - v2) / v2) * 100).toFixed(1) : '100';
+    const cls = parseFloat(pct) > 0 ? 'up' : parseFloat(pct) < 0 ? 'down' : 'neutral';
+    const arrow = parseFloat(pct) > 0 ? '↑' : parseFloat(pct) < 0 ? '↓' : '=';
+    return '<span class="compare-change ' + cls + '">' + arrow + ' ' + Math.abs(pct) + '%</span>';
+  }
+
+  const fmt = (n) => typeof n === 'number' ? n.toLocaleString() : n;
+
+  const metrics = [
+    { label: 'Seguidores', key: 'followers' },
+    { label: 'Nuevos seguidores', key: 'newFollowers' },
+    { label: 'Publicaciones', key: 'posts' },
+    { label: 'Likes totales', key: 'likes' },
+    { label: 'Engagement total', key: 'engagement' },
+    { label: 'Alcance total', key: 'reach' },
+    { label: 'Saves totales', key: 'saves' },
+    { label: 'Engagement Rate', key: 'engRate' },
+  ];
+
+  content.innerHTML = '<div class="compare-grid">' +
+    '<div class="compare-col"><h3 style="margin-bottom:16px;font-size:0.95rem;text-align:center;">' + p1.name + '</h3>' +
+      metrics.map(m => '<div class="compare-row"><span class="compare-label">' + m.label + '</span><span class="compare-value">' + (m.key === 'engRate' ? s1[m.key] + '%' : fmt(s1[m.key])) + '</span></div>').join('') +
+    '</div>' +
+    '<div class="compare-vs">VS</div>' +
+    '<div class="compare-col"><h3 style="margin-bottom:16px;font-size:0.95rem;text-align:center;">' + p2.name + '</h3>' +
+      metrics.map(m => '<div class="compare-row"><span class="compare-label">' + m.label + '</span><span class="compare-value">' + (m.key === 'engRate' ? s2[m.key] + '%' : fmt(s2[m.key])) + '</span></div>').join('') +
+    '</div>' +
+  '</div>' +
+  '<div class="table-card" style="margin-top:20px;"><h3>📊 Variación entre períodos</h3><table><thead><tr><th>Métrica</th><th>' + p1.name + '</th><th>' + p2.name + '</th><th>Cambio</th></tr></thead><tbody>' +
+    metrics.map(m => {
+      const v1 = m.key === 'engRate' ? parseFloat(s1[m.key]) : s1[m.key];
+      const v2 = m.key === 'engRate' ? parseFloat(s2[m.key]) : s2[m.key];
+      return '<tr><td>' + m.label + '</td><td><strong>' + (m.key === 'engRate' ? v1 + '%' : fmt(v1)) + '</strong></td><td><strong>' + (m.key === 'engRate' ? v2 + '%' : fmt(v2)) + '</strong></td><td>' + changeTag(v1, v2) + '</td></tr>';
+    }).join('') +
+  '</tbody></table></div>';
 }
 
 // ========== INIT ==========
