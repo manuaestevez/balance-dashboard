@@ -3310,6 +3310,23 @@ function generatePDFReport() {
 
   const fmt = (n) => typeof n === 'number' ? n.toLocaleString() : n;
 
+  // Pre-compute insights to avoid nested template literals
+  const typeEng = {};
+  posts.forEach(p => {
+    if (!typeEng[p.type]) typeEng[p.type] = { total: 0, count: 0 };
+    typeEng[p.type].total += p.likes + p.comments + p.shares + p.saves;
+    typeEng[p.type].count++;
+  });
+  const bestFormat = Object.entries(typeEng).sort((a, b) => (b[1].total / b[1].count) - (a[1].total / a[1].count))[0];
+  const insightFormato = bestFormat
+    ? 'Los <strong>' + bestFormat[0] + 's</strong> tienen el mayor engagement promedio (' + Math.round(bestFormat[1].total / bestFormat[1].count) + ' por post). Recomendamos priorizar este formato.'
+    : 'Sin datos suficientes.';
+
+  const mostSaved = [...posts].sort((a, b) => b.saves - a.saves)[0];
+  const insightSaves = (mostSaved && mostSaved.saves > 0)
+    ? 'El post "<strong>' + mostSaved.title.slice(0, 50) + '</strong>" fue el más guardado (' + mostSaved.saves + ' saves). Apostar por más contenido similar.'
+    : 'Sin datos de saves.';
+
   const reportHTML = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <title>Reporte — ${profile.name}</title>
@@ -3414,25 +3431,11 @@ td { padding: 10px; border-bottom: 1px solid rgba(42,42,58,0.5); }
     </div>
     <div class="insight-box">
       <div class="title">📊 Formato más efectivo</div>
-      <div class="detail">${(() => {
-        const typeEng = {};
-        posts.forEach(p => {
-          if (!typeEng[p.type]) typeEng[p.type] = { total: 0, count: 0 };
-          typeEng[p.type].total += p.likes + p.comments + p.shares + p.saves;
-          typeEng[p.type].count++;
-        });
-        const best = Object.entries(typeEng).sort((a, b) => (b[1].total / b[1].count) - (a[1].total / a[1].count))[0];
-        return best ? \`Los <strong>\${best[0]}s</strong> tienen el mayor engagement promedio (\${Math.round(best[1].total / best[1].count)} por post). Recomendamos priorizar este formato.\` : 'Sin datos suficientes.';
-      })()}</div>
+      <div class="detail">${insightFormato}</div>
     </div>
     <div class="insight-box">
       <div class="title">💾 Contenido más guardado</div>
-      <div class="detail">${(() => {
-        const mostSaved = [...posts].sort((a, b) => b.saves - a.saves)[0];
-        return mostSaved && mostSaved.saves > 0
-          ? \`El post "<strong>\${mostSaved.title.slice(0, 50)}</strong>" fue el más guardado (\${mostSaved.saves} saves). Este tipo de contenido de valor genera guardados — apostar por más contenido similar.\`
-          : 'Sin datos de saves.';
-      })()}</div>
+      <div class="detail">${insightSaves}</div>
     </div>
   </div>
 
