@@ -1188,10 +1188,12 @@ tbody td {
             <div class="chart-card">
               <h3><span class="dot" style="background:var(--success)"></span> Mejor Día para Publicar</h3>
               <canvas id="bestDayChart"></canvas>
+              <div id="bestDayRecommendation" style="margin-top:10px;font-size:0.85rem;font-weight:600;text-align:center;"></div>
             </div>
             <div class="chart-card">
               <h3><span class="dot" style="background:var(--warning)"></span> Mejor Hora para Publicar</h3>
               <canvas id="bestHourChart"></canvas>
+              <div id="bestHourRecommendation" style="margin-top:10px;font-size:0.85rem;font-weight:600;text-align:center;"></div>
               <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;text-align:center;">* Basado en hora de publicación registrada en Meta</p>
             </div>
           </div>
@@ -2768,6 +2770,7 @@ function renderInsights() {
 
   const dayAvg = dayData.map(d => d.count > 0 ? Math.round(d.total / d.count) : 0);
   const bestDayIdx = dayAvg.indexOf(Math.max(...dayAvg));
+  const worstDayIdx = dayAvg.indexOf(Math.min(...dayAvg.filter(v => v > 0)));
 
   destroyChart('bestDay');
   charts.bestDay = new Chart(document.getElementById('bestDayChart'), {
@@ -2791,14 +2794,14 @@ function renderInsights() {
     }
   });
 
-  // Best hour (if we have hour data from the date field)
+  // Best day recommendation
+  document.getElementById('bestDayRecommendation').innerHTML =
+    `🏆 <span style="color:var(--success)">Mejor día: ${days[bestDayIdx]}</span> — ${dayAvg[bestDayIdx]} eng. promedio`;
+
+  // Best hour analysis
   const hourData = Array(24).fill(null).map(() => ({ total: 0, count: 0 }));
   let hasHourData = false;
-  const allPosts = loadPosts(); // need raw data with original dates
-  // Check original CSV data for hour info — stored in the post object isn't great, we approximate from dates
-  // For now, show a message if no hour data available
   posts.forEach(p => {
-    // Try to extract hour from the original date if it contains time
     if (p.publishHour !== undefined && p.publishHour !== null) {
       hasHourData = true;
       const eng = p.likes + p.comments + p.shares + p.saves;
@@ -2831,27 +2834,34 @@ function renderInsights() {
         }
       }
     });
+
+    document.getElementById('bestHourRecommendation').innerHTML =
+      `🕐 <span style="color:var(--warning)">Mejor hora: ${bestHourIdx}:00 - ${bestHourIdx + 1}:00</span> — ${hourAvg[bestHourIdx]} eng. promedio`;
   } else {
-    // Show placeholder chart with day-of-week engagement distribution instead
-    const hourCtx = document.getElementById('bestHourChart');
-    charts.bestHour = new Chart(hourCtx, {
-      type: 'radar',
+    // No hour data — show a clear message and a simple bar chart by day as alternative
+    charts.bestHour = new Chart(document.getElementById('bestHourChart'), {
+      type: 'bar',
       data: {
         labels: days,
         datasets: [{
-          label: 'Engagement por día',
+          label: 'Eng. Promedio por Día',
           data: dayAvg,
-          borderColor: '#fdcb6e',
-          backgroundColor: 'rgba(253,203,110,0.15)',
-          pointBackgroundColor: '#fdcb6e',
+          backgroundColor: days.map((_, i) => i === bestDayIdx ? '#fdcb6e' : 'rgba(253,203,110,0.25)'),
+          borderRadius: 8
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
         plugins: { legend: { display: false } },
-        scales: { r: { ticks: { color: '#55556a', font: { size: 9 } }, grid: { color: 'rgba(42,42,58,0.5)' }, pointLabels: { color: '#8888a0', font: { family: 'Sora', size: 10 } } } }
+        scales: {
+          x: { ticks: { color: '#8888a0', font: { family: 'Sora', size: 10 } }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(42,42,58,0.5)' } }
+        }
       }
     });
+
+    document.getElementById('bestHourRecommendation').innerHTML =
+      `<span style="color:var(--text-muted)">⚠️ Sin datos de hora — reimportá el CSV para obtener la hora exacta de cada publicación</span>`;
   }
 
   // Format table
@@ -2945,14 +2955,14 @@ function renderCalendar() {
 // ========== GOALS TAB ==========
 function loadGoals() {
   const profile = getCurrentProfile();
-  return profile?.goals || [];
+  return profile?.targets || [];
 }
 
 function saveGoals(goals) {
   const profiles = loadProfiles();
   const profile = profiles.find(p => p.id === currentProfileId);
   if (profile) {
-    profile.goals = goals;
+    profile.targets = goals;
     saveProfiles(profiles);
   }
 }
