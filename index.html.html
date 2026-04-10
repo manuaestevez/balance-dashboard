@@ -1,0 +1,2440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-sidebar: #08080d;
+  --bg-card: #12121a;
+  --bg-card-hover: #1a1a26;
+  --bg-input: #1e1e2e;
+  --accent: #e84393;
+  --accent-glow: rgba(232, 67, 147, 0.3);
+  --accent-secondary: #6c5ce7;
+  --accent-tertiary: #00cec9;
+  --text-primary: #f0f0f5;
+  --text-secondary: #8888a0;
+  --text-muted: #55556a;
+  --border: #2a2a3a;
+  --success: #00b894;
+  --warning: #fdcb6e;
+  --danger: #ff7675;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  overflow-y: auto;
+  z-index: 100;
+  transition: transform 0.3s;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sidebar-logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+
+.sidebar-brand h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.sidebar-brand p {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.sidebar-section-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 12px 10px 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-section-label button {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 3px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.sidebar-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.sidebar-item.active.profile {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.profile-info strong {
+  display: block;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.profile-info span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.nav-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.empty-profiles {
+  padding: 20px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* ========== MAIN ========== */
+.main {
+  margin-left: 260px;
+  flex: 1;
+  padding: 28px 36px;
+  max-width: calc(100vw - 260px);
+}
+
+.mobile-header {
+  display: none;
+  padding: 14px 20px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+/* ========== PAGE HEADER ========== */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-title h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.page-title .title-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+}
+
+.page-title p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border: none;
+  color: white;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-danger:hover { background: rgba(255,118,117,0.1); }
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+
+.date-preset.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border-color: transparent;
+  color: white;
+}
+
+input[type="file"] { display: none; }
+
+/* ========== TABS ========== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--bg-card);
+  padding: 4px;
+  border-radius: var(--radius);
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  color: white;
+}
+
+/* ========== KPI ========== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.kpi-card:hover::before { opacity: 1; }
+.kpi-card:hover { transform: translateY(-2px); }
+
+.kpi-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: -0.02em;
+}
+
+.kpi-change { font-size: 0.75rem; margin-top: 4px; font-weight: 500; }
+.kpi-change.up { color: var(--success); }
+.kpi-change.down { color: var(--danger); }
+
+/* ========== CHARTS ========== */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.chart-card h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-card h3 .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+canvas { max-height: 280px; }
+
+/* ========== TABLES ========== */
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.table-card h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+thead th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(42,42,58,0.5);
+  transition: background 0.15s;
+}
+tbody tr:hover { background: var(--bg-card-hover); }
+
+tbody td {
+  padding: 11px 12px;
+  white-space: nowrap;
+}
+
+.post-type-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.post-type-badge.reel { background: rgba(232,67,147,0.15); color: var(--accent); }
+.post-type-badge.carousel { background: rgba(108,92,231,0.15); color: var(--accent-secondary); }
+.post-type-badge.image { background: rgba(0,206,201,0.15); color: var(--accent-tertiary); }
+.post-type-badge.story { background: rgba(253,203,110,0.15); color: var(--warning); }
+
+/* ========== AGENCY VIEW ========== */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.account-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.account-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--account-color, var(--accent));
+}
+
+.account-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: var(--accent);
+}
+
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.account-card-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.account-card-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.account-card-info p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.account-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.account-card-stat {
+  display: flex;
+  flex-direction: column;
+}
+.account-card-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.account-card-stat-value {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.niche-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.ranking-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--warning), var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  font-family: 'Space Mono', monospace;
+}
+
+/* ========== EMPTY STATES ========== */
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.empty-state .icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  opacity: 0.6;
+}
+
+.empty-state h2 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  max-width: 460px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.import-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  max-width: 560px;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.import-zone:hover, .import-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(232, 67, 147, 0.05);
+}
+
+/* ========== FILTERS ========== */
+.filters-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-select, .filter-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+}
+
+/* ========== MODALS ========== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
+
+.modal h2 {
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.88rem;
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.color-picker-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+.color-option.selected {
+  border-color: white;
+  transform: scale(1.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+/* ========== TOAST ========== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--success);
+  color: var(--text-primary);
+  padding: 13px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  z-index: 2000;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  box-shadow: var(--shadow);
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* SCROLL */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ========== PROFILE CARD ========== */
+.profile-detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+
+.profile-detail-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.profile-detail-info h3 {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+.profile-detail-info .handle {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+.profile-detail-info .notes {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .profile-detail-card { grid-template-columns: 1fr; text-align: center; }
+  .profile-detail-avatar { margin: 0 auto; }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 80vw;
+    max-width: 280px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; max-width: 100vw; padding: 16px; }
+  .mobile-header { display: flex; }
+  .page-title h1 { font-size: 1.3rem; }
+  .kpi-value { font-size: 1.3rem; }
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+.sidebar-overlay.active { display: block; }
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">📊</div>
+    <div>
+      <h2>Balance Dashboard</h2>
+      <p>Gestión Multi-Cuenta</p>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">Navegación</div>
+  <div class="sidebar-item" id="nav-agency" onclick="showAgencyView()">
+    <span class="nav-icon">🏢</span>
+    <span>Vista Agencia</span>
+  </div>
+
+  <div class="sidebar-section-label">
+    Clientes
+    <button onclick="openProfileModal()" title="Agregar cliente">+</button>
+  </div>
+  <div id="profilesList"></div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <!-- Mobile header -->
+  <div class="mobile-header">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <strong>Balance Dashboard</strong>
+    <span></span>
+  </div>
+
+  <!-- AGENCY VIEW -->
+  <div id="agency-view">
+    <div class="page-header">
+      <div class="page-title">
+        <h1>🏢 Vista Agencia</h1>
+        <p>Todas tus cuentas en un solo lugar · comparativas y rankings</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" onclick="openProfileModal()">➕ Nuevo Cliente</button>
+      </div>
+    </div>
+
+    <div id="agencyContent"></div>
+  </div>
+
+  <!-- PROFILE VIEW -->
+  <div id="profile-view" style="display:none;">
+    <div class="page-header">
+      <div class="page-title" id="profileTitle"></div>
+      <div class="page-actions">
+        <button class="btn btn-sm" onclick="editCurrentProfile()">✏️ Editar</button>
+        <button class="btn btn-sm" onclick="openManualModal()">➕ Post</button>
+        <button class="btn btn-sm" onclick="openPeriodModal()">📅 Balance</button>
+        <button class="btn btn-sm btn-primary" onclick="document.getElementById('csvInput').click()">📁 CSV</button>
+        <input type="file" id="csvInput" accept=".csv,.tsv,.xlsx" onchange="handleFileImport(event)">
+        <button class="btn btn-sm" onclick="exportData()">💾</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteCurrentProfile()">🗑</button>
+      </div>
+    </div>
+
+    <div id="profileDetailCard"></div>
+
+    <div id="profileContent">
+      <!-- Empty state -->
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <div class="icon">📱</div>
+        <h2>Sin datos todavía</h2>
+        <p>Importá un CSV desde Meta Business Suite o cargá manualmente las estadísticas.</p>
+        <div class="import-zone" id="dropZone" onclick="document.getElementById('csvInput').click()">
+          <h3>📁 Arrastrá tu archivo CSV acá</h3>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">O hacé click para seleccionarlo</p>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="dashboard" style="display:none;">
+
+        <!-- GLOBAL DATE FILTER -->
+        <div class="filters-row" style="margin-bottom:16px; align-items:center;">
+          <span style="font-size:0.8rem;color:var(--text-secondary);font-weight:500;">📅 Período:</span>
+          <button class="btn btn-sm date-preset active" data-range="all" onclick="setDateRange('all', this)">Todo</button>
+          <button class="btn btn-sm date-preset" data-range="week" onclick="setDateRange('week', this)">Última semana</button>
+          <button class="btn btn-sm date-preset" data-range="2weeks" onclick="setDateRange('2weeks', this)">Últimos 15 días</button>
+          <button class="btn btn-sm date-preset" data-range="month" onclick="setDateRange('month', this)">Último mes</button>
+          <button class="btn btn-sm date-preset" data-range="3months" onclick="setDateRange('3months', this)">Últimos 3 meses</button>
+          <button class="btn btn-sm date-preset" data-range="custom" onclick="toggleCustomDates(this)">Personalizado</button>
+          <div id="customDateInputs" style="display:none;align-items:center;gap:8px;">
+            <input type="date" class="filter-input" id="globalDateFrom" onchange="applyCustomDates()">
+            <span style="color:var(--text-muted);font-size:0.8rem;">→</span>
+            <input type="date" class="filter-input" id="globalDateTo" onchange="applyCustomDates()">
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('overview', this)">Resumen</button>
+          <button class="tab" onclick="switchTab('posts', this)">Publicaciones</button>
+          <button class="tab" onclick="switchTab('top', this)">Top ⭐</button>
+          <button class="tab" onclick="switchTab('growth', this)">Crecimiento</button>
+        </div>
+
+        <div id="tab-overview">
+          <div class="kpi-grid" id="kpiGrid"></div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3><span class="dot"></span> Engagement por Publicación</h3>
+              <canvas id="engagementChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent-secondary)"></span> Alcance vs Impresiones</h3>
+              <canvas id="reachChart"></canvas>
+            </div>
+          </div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent-tertiary)"></span> Distribución por Tipo</h3>
+              <canvas id="typeChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--warning)"></span> Engagement Rate por Post</h3>
+              <canvas id="engRateChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-posts" style="display:none;">
+          <div class="filters-row">
+            <select class="filter-select" id="filterType" onchange="renderPostsTable()">
+              <option value="all">Todos los tipos</option>
+              <option value="reel">Reels</option>
+              <option value="carousel">Carruseles</option>
+              <option value="image">Imágenes</option>
+              <option value="story">Stories</option>
+            </select>
+            <input type="date" class="filter-input" id="filterDateFrom" onchange="renderPostsTable()">
+            <input type="date" class="filter-input" id="filterDateTo" onchange="renderPostsTable()">
+            <select class="filter-select" id="sortBy" onchange="renderPostsTable()">
+              <option value="date">Fecha (reciente)</option>
+              <option value="likes">Más likes</option>
+              <option value="engagement">Mayor engagement</option>
+              <option value="reach">Mayor alcance</option>
+            </select>
+          </div>
+          <div class="table-card">
+            <h3>📋 Detalle de Publicaciones</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th><th>Título</th><th>Tipo</th>
+                  <th>❤️</th><th>💬</th><th>🔄</th><th>🔖</th>
+                  <th>👁 Alcance</th><th>📊 Impr.</th><th>Eng. Rate</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="postsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tab-top" style="display:none;">
+          <h3 style="margin-bottom:18px;font-size:1rem;">🏆 Top 5 — Contenido Estrella</h3>
+          <div class="account-grid" id="topContentGrid"></div>
+          <div class="charts-row" style="margin-top:14px;">
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--warning)"></span> Top por Engagement</h3>
+              <canvas id="topEngagementChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--success)"></span> Top por Alcance</h3>
+              <canvas id="topReachChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-growth" style="display:none;">
+          <div class="kpi-grid" id="growthKpiGrid"></div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--success)"></span> Evolución de Seguidores</h3>
+              <canvas id="followersChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3><span class="dot" style="background:var(--accent)"></span> Engagement Rate Promedio</h3>
+              <canvas id="engRateOverTimeChart"></canvas>
+            </div>
+          </div>
+          <div class="table-card">
+            <h3>📅 Balances por Período</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Período</th><th>Seguidores</th><th>Nuevos</th>
+                  <th>Posts</th><th>Likes</th><th>Eng. Rate</th><th>Alcance</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="periodsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <h2 id="profileModalTitle">➕ Nuevo Cliente</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="pfName" placeholder="Ej: Tomy Medina">
+      </div>
+      <div class="form-group">
+        <label>@ Usuario</label>
+        <input type="text" id="pfHandle" placeholder="@tomy.medina">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nicho</label>
+      <input type="text" id="pfNiche" placeholder="Ej: Fitness, Moda, Cocina...">
+    </div>
+    <div class="form-group">
+      <label>Objetivos</label>
+      <textarea id="pfGoals" rows="2" placeholder="Crecer a 10k followers, mejorar engagement rate..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <textarea id="pfNotes" rows="2" placeholder="Detalles del cliente, preferencias, estilo..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Color / Avatar</label>
+      <div class="color-picker-row" id="colorPicker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeProfileModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- POST MODAL -->
+<div class="modal-overlay" id="manualModal">
+  <div class="modal">
+    <h2>➕ Agregar Publicación</h2>
+    <div class="form-group">
+      <label>Fecha</label>
+      <input type="date" id="postDate">
+    </div>
+    <div class="form-group">
+      <label>Título / Descripción</label>
+      <input type="text" id="postTitle" placeholder="Ej: Rutina de pecho 10 min">
+    </div>
+    <div class="form-group">
+      <label>Tipo</label>
+      <select id="postType">
+        <option value="reel">Reel</option>
+        <option value="carousel">Carrusel</option>
+        <option value="image">Imagen</option>
+        <option value="story">Story</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>❤️ Likes</label><input type="number" id="postLikes" value="0"></div>
+      <div class="form-group"><label>💬 Comments</label><input type="number" id="postComments" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>🔄 Shares</label><input type="number" id="postShares" value="0"></div>
+      <div class="form-group"><label>🔖 Saves</label><input type="number" id="postSaves" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>👁 Alcance</label><input type="number" id="postReach" value="0"></div>
+      <div class="form-group"><label>📊 Impresiones</label><input type="number" id="postImpressions" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeManualModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePost()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERIOD MODAL -->
+<div class="modal-overlay" id="periodModal">
+  <div class="modal">
+    <h2>📅 Balance del Período</h2>
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="periodName" placeholder="Ej: Abril 2026 — Semana 1">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Inicio</label><input type="date" id="periodStart"></div>
+      <div class="form-group"><label>Fin</label><input type="date" id="periodEnd"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Seguidores</label><input type="number" id="periodFollowers" value="0"></div>
+      <div class="form-group"><label>Nuevos Seg.</label><input type="number" id="periodNewFollowers" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Alcance</label><input type="number" id="periodReach" value="0"></div>
+      <div class="form-group"><label>Impresiones</label><input type="number" id="periodImpressions" value="0"></div>
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <input type="text" id="periodNotes" placeholder="Observaciones...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closePeriodModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePeriod()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOLLOWERS MINI-MODAL (appears after CSV import) -->
+<div class="modal-overlay" id="followersModal">
+  <div class="modal" style="max-width:440px;">
+    <h2>📊 Balance automático del período</h2>
+    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:18px;" id="followersModalInfo"></p>
+    <div style="background:var(--bg-input);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">
+        <span>📅 Período detectado:</span>
+        <span id="fmPeriodRange"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">
+        <span>📝 Posts importados:</span>
+        <span id="fmPostCount"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">
+        <span>👁 Alcance total (auto):</span>
+        <span id="fmReach"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);">
+        <span>📊 Impresiones total (auto):</span>
+        <span id="fmImpressions"></span>
+      </div>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:14px;">Solo necesito estos dos datos que los ves en la app de Instagram en <strong style="color:var(--accent);">Insights → Audiencia</strong>:</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>👥 Seguidores totales (hoy)</label>
+        <input type="number" id="fmFollowers" placeholder="Ej: 3500">
+      </div>
+      <div class="form-group">
+        <label>📈 Nuevos seguidores (período)</label>
+        <input type="number" id="fmNewFollowers" placeholder="Ej: 120">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="skipFollowersModal()">Omitir</button>
+      <button class="btn btn-primary" onclick="saveFollowersModal()">Crear Balance</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== STATE ==========
+const PROFILES_KEY = 'ig_platform_profiles';
+const CURRENT_KEY = 'ig_platform_current';
+
+const COLORS = [
+  '#e84393', '#6c5ce7', '#00cec9', '#fdcb6e',
+  '#00b894', '#ff7675', '#74b9ff', '#a29bfe',
+  '#fd79a8', '#55efc4'
+];
+
+let currentProfileId = null;
+let editingProfileId = null;
+let selectedColor = COLORS[0];
+
+// Global date filter state
+let globalDateFrom = null;
+let globalDateTo = null;
+
+function setDateRange(range, btn) {
+  // Update active button
+  document.querySelectorAll('.date-preset').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('customDateInputs').style.display = 'none';
+
+  const today = new Date();
+  const fmt = (d) => d.toISOString().slice(0, 10);
+
+  if (range === 'all') {
+    globalDateFrom = null;
+    globalDateTo = null;
+  } else if (range === 'week') {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 7);
+    globalDateFrom = fmt(from);
+    globalDateTo = fmt(today);
+  } else if (range === '2weeks') {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 15);
+    globalDateFrom = fmt(from);
+    globalDateTo = fmt(today);
+  } else if (range === 'month') {
+    const from = new Date(today);
+    from.setMonth(from.getMonth() - 1);
+    globalDateFrom = fmt(from);
+    globalDateTo = fmt(today);
+  } else if (range === '3months') {
+    const from = new Date(today);
+    from.setMonth(from.getMonth() - 3);
+    globalDateFrom = fmt(from);
+    globalDateTo = fmt(today);
+  }
+
+  renderDashboard();
+}
+
+function toggleCustomDates(btn) {
+  document.querySelectorAll('.date-preset').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const container = document.getElementById('customDateInputs');
+  container.style.display = 'flex';
+
+  // Pre-fill with existing global range or empty
+  document.getElementById('globalDateFrom').value = globalDateFrom || '';
+  document.getElementById('globalDateTo').value = globalDateTo || '';
+}
+
+function applyCustomDates() {
+  const from = document.getElementById('globalDateFrom').value;
+  const to = document.getElementById('globalDateTo').value;
+  globalDateFrom = from || null;
+  globalDateTo = to || null;
+  renderDashboard();
+}
+
+// Filter posts by global date range
+function getFilteredPosts() {
+  let posts = loadPosts();
+  if (globalDateFrom) posts = posts.filter(p => p.date >= globalDateFrom);
+  if (globalDateTo) posts = posts.filter(p => p.date <= globalDateTo);
+  return posts;
+}
+
+// ========== PROFILE MANAGEMENT ==========
+function loadProfiles() {
+  try { return JSON.parse(localStorage.getItem(PROFILES_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveProfiles(profiles) {
+  localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+}
+
+function getCurrentProfile() {
+  return loadProfiles().find(p => p.id === currentProfileId);
+}
+
+function loadPosts() {
+  const profile = getCurrentProfile();
+  return profile?.posts || [];
+}
+
+function savePosts(posts) {
+  const profiles = loadProfiles();
+  const profile = profiles.find(p => p.id === currentProfileId);
+  if (profile) {
+    profile.posts = posts;
+    saveProfiles(profiles);
+  }
+}
+
+function loadPeriods() {
+  const profile = getCurrentProfile();
+  return profile?.periods || [];
+}
+
+function savePeriods(periods) {
+  const profiles = loadProfiles();
+  const profile = profiles.find(p => p.id === currentProfileId);
+  if (profile) {
+    profile.periods = periods;
+    saveProfiles(profiles);
+  }
+}
+
+function getInitials(name) {
+  return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+}
+
+// ========== TOAST ==========
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ========== PROFILE MODAL ==========
+function openProfileModal(id = null) {
+  editingProfileId = id;
+  const modal = document.getElementById('profileModal');
+  const title = document.getElementById('profileModalTitle');
+
+  // Render color picker
+  const picker = document.getElementById('colorPicker');
+  picker.innerHTML = COLORS.map(c => `<div class="color-option" style="background:${c}" data-color="${c}" onclick="selectColor('${c}')"></div>`).join('');
+
+  if (id) {
+    const profile = loadProfiles().find(p => p.id === id);
+    title.textContent = '✏️ Editar Cliente';
+    document.getElementById('pfName').value = profile.name;
+    document.getElementById('pfHandle').value = profile.handle;
+    document.getElementById('pfNiche').value = profile.niche || '';
+    document.getElementById('pfGoals').value = profile.goals || '';
+    document.getElementById('pfNotes').value = profile.notes || '';
+    selectedColor = profile.color;
+  } else {
+    title.textContent = '➕ Nuevo Cliente';
+    document.getElementById('pfName').value = '';
+    document.getElementById('pfHandle').value = '';
+    document.getElementById('pfNiche').value = '';
+    document.getElementById('pfGoals').value = '';
+    document.getElementById('pfNotes').value = '';
+    selectedColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+  }
+
+  // Mark selected color
+  setTimeout(() => {
+    document.querySelectorAll('.color-option').forEach(el => {
+      el.classList.toggle('selected', el.dataset.color === selectedColor);
+    });
+  }, 0);
+
+  modal.classList.add('active');
+}
+
+function selectColor(color) {
+  selectedColor = color;
+  document.querySelectorAll('.color-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === color);
+  });
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.remove('active');
+  editingProfileId = null;
+}
+
+function saveProfile() {
+  const name = document.getElementById('pfName').value.trim();
+  const handle = document.getElementById('pfHandle').value.trim();
+  if (!name || !handle) { showToast('⚠️ Nombre y usuario son obligatorios'); return; }
+
+  const profiles = loadProfiles();
+
+  if (editingProfileId) {
+    const profile = profiles.find(p => p.id === editingProfileId);
+    profile.name = name;
+    profile.handle = handle.startsWith('@') ? handle : '@' + handle;
+    profile.niche = document.getElementById('pfNiche').value.trim();
+    profile.goals = document.getElementById('pfGoals').value.trim();
+    profile.notes = document.getElementById('pfNotes').value.trim();
+    profile.color = selectedColor;
+    showToast('✅ Cliente actualizado');
+  } else {
+    const newProfile = {
+      id: 'profile_' + Date.now(),
+      name,
+      handle: handle.startsWith('@') ? handle : '@' + handle,
+      niche: document.getElementById('pfNiche').value.trim(),
+      goals: document.getElementById('pfGoals').value.trim(),
+      notes: document.getElementById('pfNotes').value.trim(),
+      color: selectedColor,
+      createdAt: Date.now(),
+      posts: [],
+      periods: [],
+    };
+    profiles.push(newProfile);
+    showToast('✅ Cliente creado');
+  }
+
+  saveProfiles(profiles);
+  closeProfileModal();
+  renderSidebar();
+  if (editingProfileId === currentProfileId) {
+    renderProfileView();
+  } else if (!editingProfileId) {
+    // Switch to new profile
+    const newProfile = profiles[profiles.length - 1];
+    selectProfile(newProfile.id);
+  }
+  renderAgencyView();
+}
+
+function editCurrentProfile() {
+  if (currentProfileId) openProfileModal(currentProfileId);
+}
+
+function deleteCurrentProfile() {
+  if (!currentProfileId) return;
+  const profile = getCurrentProfile();
+  if (!confirm(`¿Seguro que querés eliminar el perfil de ${profile.name}? Se borrarán todos sus datos.`)) return;
+
+  let profiles = loadProfiles().filter(p => p.id !== currentProfileId);
+  saveProfiles(profiles);
+  currentProfileId = null;
+  localStorage.removeItem(CURRENT_KEY);
+  showToast('🗑 Cliente eliminado');
+  renderSidebar();
+  showAgencyView();
+}
+
+// ========== SIDEBAR ==========
+function renderSidebar() {
+  const profiles = loadProfiles();
+  const list = document.getElementById('profilesList');
+
+  if (profiles.length === 0) {
+    list.innerHTML = '<div class="empty-profiles">Sin clientes aún.<br>Tocá el "+" para agregar uno.</div>';
+    return;
+  }
+
+  list.innerHTML = profiles.map(p => `
+    <div class="sidebar-item profile ${p.id === currentProfileId ? 'active' : ''}" onclick="selectProfile('${p.id}')">
+      <div class="profile-avatar" style="background:${p.color}">${getInitials(p.name)}</div>
+      <div class="profile-info">
+        <strong>${p.name}</strong>
+        <span>${p.handle}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectProfile(id) {
+  currentProfileId = id;
+  localStorage.setItem(CURRENT_KEY, id);
+  // Reset global date filter
+  globalDateFrom = null;
+  globalDateTo = null;
+  document.getElementById('agency-view').style.display = 'none';
+  document.getElementById('profile-view').style.display = 'block';
+  document.getElementById('nav-agency').classList.remove('active');
+  renderSidebar();
+  renderProfileView();
+  // Reset filter buttons UI
+  document.querySelectorAll('.date-preset').forEach(b => b.classList.remove('active'));
+  const allBtn = document.querySelector('.date-preset[data-range="all"]');
+  if (allBtn) allBtn.classList.add('active');
+  document.getElementById('customDateInputs').style.display = 'none';
+  if (window.innerWidth < 768) toggleSidebar();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+// ========== AGENCY VIEW ==========
+function showAgencyView() {
+  currentProfileId = null;
+  document.getElementById('agency-view').style.display = 'block';
+  document.getElementById('profile-view').style.display = 'none';
+  document.getElementById('nav-agency').classList.add('active');
+  renderSidebar();
+  renderAgencyView();
+  if (window.innerWidth < 768) toggleSidebar();
+}
+
+function renderAgencyView() {
+  const profiles = loadProfiles();
+  const content = document.getElementById('agencyContent');
+
+  if (profiles.length === 0) {
+    content.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🏢</div>
+        <h2>Tu agencia está vacía</h2>
+        <p>Agregá tu primer cliente para empezar a gestionar sus cuentas de Instagram. Podés comenzar con tu propia marca y luego sumar a Tomy y otros clientes.</p>
+        <button class="btn btn-primary" onclick="openProfileModal()">➕ Agregar Primer Cliente</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Calculate stats for each profile
+  const withStats = profiles.map(p => {
+    const posts = p.posts || [];
+    const periods = p.periods || [];
+    const totalLikes = posts.reduce((s, x) => s + (x.likes || 0), 0);
+    const totalEng = posts.reduce((s, x) => s + (x.likes || 0) + (x.comments || 0) + (x.shares || 0) + (x.saves || 0), 0);
+    const totalReach = posts.reduce((s, x) => s + (x.reach || 0), 0);
+    const followers = periods.length > 0 ? periods[periods.length - 1].followers : 0;
+    const avgEngRate = totalReach > 0 ? (totalEng / totalReach * 100) : 0;
+    return { ...p, totalLikes, totalEng, totalReach, followers, avgEngRate, postCount: posts.length };
+  });
+
+  // Ranking by engagement rate
+  const ranked = [...withStats].sort((a, b) => b.avgEngRate - a.avgEngRate);
+  const rankMap = {};
+  ranked.forEach((p, i) => { rankMap[p.id] = i + 1; });
+
+  // Agency KPIs
+  const totalClients = withStats.length;
+  const totalFollowers = withStats.reduce((s, p) => s + p.followers, 0);
+  const totalPosts = withStats.reduce((s, p) => s + p.postCount, 0);
+  const totalEngAll = withStats.reduce((s, p) => s + p.totalEng, 0);
+
+  const fmt = (n) => n >= 1000000 ? (n/1000000).toFixed(1) + 'M' : n >= 1000 ? (n/1000).toFixed(1) + 'K' : n.toLocaleString();
+
+  let html = `
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Clientes Activos</div>
+        <div class="kpi-value">${totalClients}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Seguidores Totales</div>
+        <div class="kpi-value">${fmt(totalFollowers)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Posts Gestionados</div>
+        <div class="kpi-value">${totalPosts}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Engagement Total</div>
+        <div class="kpi-value">${fmt(totalEngAll)}</div>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:16px;font-size:1rem;">👥 Tus Clientes</h3>
+    <div class="account-grid">
+      ${withStats.map(p => `
+        <div class="account-card" style="--account-color:${p.color}" onclick="selectProfile('${p.id}')">
+          ${totalClients > 1 ? `<div class="ranking-badge">#${rankMap[p.id]}</div>` : ''}
+          <div class="account-card-header">
+            <div class="account-card-avatar" style="background:${p.color}">${getInitials(p.name)}</div>
+            <div class="account-card-info">
+              <h3>${p.name}</h3>
+              <p>${p.handle}</p>
+              ${p.niche ? `<span class="niche-tag">${p.niche}</span>` : ''}
+            </div>
+          </div>
+          <div class="account-card-stats">
+            <div class="account-card-stat">
+              <span class="account-card-stat-label">Seguidores</span>
+              <span class="account-card-stat-value">${fmt(p.followers)}</span>
+            </div>
+            <div class="account-card-stat">
+              <span class="account-card-stat-label">Posts</span>
+              <span class="account-card-stat-value">${p.postCount}</span>
+            </div>
+            <div class="account-card-stat">
+              <span class="account-card-stat-label">Eng. Rate</span>
+              <span class="account-card-stat-value">${p.avgEngRate.toFixed(2)}%</span>
+            </div>
+            <div class="account-card-stat">
+              <span class="account-card-stat-label">Alcance</span>
+              <span class="account-card-stat-value">${fmt(p.totalReach)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Comparatives (only if 2+ profiles)
+  if (totalClients >= 2) {
+    html += `
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3><span class="dot"></span> Ranking por Engagement Rate</h3>
+          <canvas id="rankEngRateChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3><span class="dot" style="background:var(--accent-secondary)"></span> Seguidores por Cliente</h3>
+          <canvas id="rankFollowersChart"></canvas>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3><span class="dot" style="background:var(--accent-tertiary)"></span> Alcance Acumulado</h3>
+          <canvas id="rankReachChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3><span class="dot" style="background:var(--warning)"></span> Volumen de Publicaciones</h3>
+          <canvas id="rankPostsChart"></canvas>
+        </div>
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+
+  // Render comparative charts
+  if (totalClients >= 2) {
+    renderComparativeCharts(withStats, ranked);
+  }
+}
+
+function renderComparativeCharts(profiles, ranked) {
+  const labels = ranked.map(p => p.name);
+  const colors = ranked.map(p => p.color);
+
+  // Opciones para barras horizontales — evita heredar las escalas de chartDefaults
+  const horizontalBarOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } },
+        grid: { color: 'rgba(42,42,58,0.5)' }
+      },
+      y: {
+        ticks: { color: '#8888a0', font: { family: 'Sora', size: 11 } },
+        grid: { display: false }
+      }
+    }
+  };
+
+  destroyChart('rankEngRate');
+  charts.rankEngRate = new Chart(document.getElementById('rankEngRateChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Eng. Rate %', data: ranked.map(p => parseFloat(p.avgEngRate.toFixed(2))), backgroundColor: colors, borderRadius: 8 }]
+    },
+    options: horizontalBarOptions
+  });
+
+  destroyChart('rankFollowers');
+  charts.rankFollowers = new Chart(document.getElementById('rankFollowersChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Seguidores', data: ranked.map(p => p.followers), backgroundColor: colors, borderRadius: 8 }]
+    },
+    options: horizontalBarOptions
+  });
+
+  destroyChart('rankReach');
+  charts.rankReach = new Chart(document.getElementById('rankReachChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Alcance', data: ranked.map(p => p.totalReach), backgroundColor: colors, borderRadius: 8 }]
+    },
+    options: horizontalBarOptions
+  });
+
+  destroyChart('rankPosts');
+  charts.rankPosts = new Chart(document.getElementById('rankPostsChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Posts', data: ranked.map(p => p.postCount), backgroundColor: colors, borderRadius: 8 }]
+    },
+    options: horizontalBarOptions
+  });
+}
+
+// ========== PROFILE VIEW ==========
+function renderProfileView() {
+  const profile = getCurrentProfile();
+  if (!profile) return;
+
+  // Title
+  document.getElementById('profileTitle').innerHTML = `
+    <h1>
+      <div class="title-avatar profile-avatar" style="background:${profile.color}">${getInitials(profile.name)}</div>
+      ${profile.name}
+    </h1>
+    <p>${profile.handle}${profile.niche ? ' · ' + profile.niche : ''}</p>
+  `;
+
+  // Detail card
+  document.getElementById('profileDetailCard').innerHTML = `
+    <div class="profile-detail-card">
+      <div class="profile-detail-avatar" style="background:${profile.color}">${getInitials(profile.name)}</div>
+      <div class="profile-detail-info">
+        <h3>${profile.name} <span class="niche-tag">${profile.niche || 'Sin nicho'}</span></h3>
+        <div class="handle">${profile.handle}</div>
+        ${profile.goals ? `<div style="font-size:0.82rem;margin-top:6px;"><strong style="color:var(--accent)">🎯 Objetivos:</strong> ${profile.goals}</div>` : ''}
+        ${profile.notes ? `<div class="notes">${profile.notes}</div>` : ''}
+      </div>
+    </div>
+  `;
+
+  renderDashboard();
+}
+
+// ========== DASHBOARD (per profile) ==========
+function renderDashboard() {
+  const allPosts = loadPosts();
+  const periods = loadPeriods();
+
+  if (allPosts.length === 0 && periods.length === 0) {
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  const filtered = getFilteredPosts();
+  renderKPIs(filtered);
+  renderOverviewCharts(filtered);
+  renderPostsTable();
+  renderTopContent();
+  renderGrowth();
+}
+
+function renderKPIs(posts) {
+  const totalLikes = posts.reduce((s, p) => s + p.likes, 0);
+  const totalComments = posts.reduce((s, p) => s + p.comments, 0);
+  const totalShares = posts.reduce((s, p) => s + p.shares, 0);
+  const totalSaves = posts.reduce((s, p) => s + p.saves, 0);
+  const totalReach = posts.reduce((s, p) => s + p.reach, 0);
+  const totalImpressions = posts.reduce((s, p) => s + p.impressions, 0);
+  const totalEngagement = totalLikes + totalComments + totalShares + totalSaves;
+  const avgEngRate = posts.length > 0 && totalReach > 0
+    ? (totalEngagement / totalReach * 100).toFixed(2)
+    : '0.00';
+
+  const fmt = (n) => n >= 1000000 ? (n/1000000).toFixed(1) + 'M' : n >= 1000 ? (n/1000).toFixed(1) + 'K' : n.toLocaleString();
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Posts</div><div class="kpi-value">${posts.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Likes</div><div class="kpi-value">${fmt(totalLikes)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Comments</div><div class="kpi-value">${fmt(totalComments)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Shares</div><div class="kpi-value">${fmt(totalShares)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Saves</div><div class="kpi-value">${fmt(totalSaves)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Alcance</div><div class="kpi-value">${fmt(totalReach)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Impresiones</div><div class="kpi-value">${fmt(totalImpressions)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Eng. Rate</div><div class="kpi-value">${avgEngRate}%</div></div>
+  `;
+}
+
+let charts = {};
+function destroyChart(name) {
+  if (charts[name]) { charts[name].destroy(); delete charts[name]; }
+}
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend: { labels: { color: '#8888a0', font: { family: 'Sora', size: 11 } } } },
+  scales: {
+    x: { ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(42,42,58,0.5)' } },
+    y: { ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(42,42,58,0.5)' } },
+  }
+};
+
+function renderOverviewCharts(posts) {
+  const sorted = [...posts].sort((a, b) => a.date.localeCompare(b.date));
+  const labels = sorted.map(p => p.date.slice(5));
+
+  destroyChart('engagement');
+  charts.engagement = new Chart(document.getElementById('engagementChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Likes', data: sorted.map(p => p.likes), backgroundColor: '#e84393' },
+        { label: 'Comments', data: sorted.map(p => p.comments), backgroundColor: '#6c5ce7' },
+        { label: 'Shares', data: sorted.map(p => p.shares), backgroundColor: '#00cec9' },
+        { label: 'Saves', data: sorted.map(p => p.saves), backgroundColor: '#fdcb6e' },
+      ]
+    },
+    options: { ...chartDefaults, scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: true }, y: { ...chartDefaults.scales.y, stacked: true } } }
+  });
+
+  destroyChart('reach');
+  charts.reach = new Chart(document.getElementById('reachChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Alcance', data: sorted.map(p => p.reach), borderColor: '#6c5ce7', backgroundColor: 'rgba(108,92,231,0.1)', fill: true, tension: 0.3 },
+        { label: 'Impresiones', data: sorted.map(p => p.impressions), borderColor: '#00cec9', backgroundColor: 'rgba(0,206,201,0.1)', fill: true, tension: 0.3 },
+      ]
+    },
+    options: chartDefaults
+  });
+
+  destroyChart('type');
+  const types = {};
+  posts.forEach(p => { types[p.type] = (types[p.type] || 0) + 1; });
+  const typeColors = { reel: '#e84393', carousel: '#6c5ce7', image: '#00cec9', story: '#fdcb6e' };
+  charts.type = new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(types).map(t => t.charAt(0).toUpperCase() + t.slice(1)),
+      datasets: [{ data: Object.values(types), backgroundColor: Object.keys(types).map(t => typeColors[t] || '#888'), borderWidth: 0 }]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#8888a0', font: { family: 'Sora' } } } } }
+  });
+
+  destroyChart('engRate');
+  const engRates = sorted.map(p => {
+    const total = p.likes + p.comments + p.shares + p.saves;
+    return p.reach > 0 ? ((total / p.reach) * 100).toFixed(2) : 0;
+  });
+  charts.engRate = new Chart(document.getElementById('engRateChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Eng. Rate %', data: engRates,
+        borderColor: '#fdcb6e', backgroundColor: 'rgba(253,203,110,0.1)',
+        fill: true, tension: 0.4, pointBackgroundColor: '#fdcb6e',
+      }]
+    },
+    options: chartDefaults
+  });
+}
+
+function renderPostsTable() {
+  let posts = getFilteredPosts();
+  const typeFilter = document.getElementById('filterType').value;
+  const dateFrom = document.getElementById('filterDateFrom').value;
+  const dateTo = document.getElementById('filterDateTo').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  if (typeFilter !== 'all') posts = posts.filter(p => p.type === typeFilter);
+  if (dateFrom) posts = posts.filter(p => p.date >= dateFrom);
+  if (dateTo) posts = posts.filter(p => p.date <= dateTo);
+
+  if (sortBy === 'date') posts.sort((a, b) => b.date.localeCompare(a.date));
+  else if (sortBy === 'likes') posts.sort((a, b) => b.likes - a.likes);
+  else if (sortBy === 'reach') posts.sort((a, b) => b.reach - a.reach);
+  else if (sortBy === 'engagement') posts.sort((a, b) => {
+    const ea = a.likes + a.comments + a.shares + a.saves;
+    const eb = b.likes + b.comments + b.shares + b.saves;
+    return eb - ea;
+  });
+
+  const tbody = document.getElementById('postsTableBody');
+  tbody.innerHTML = posts.map(p => {
+    const eng = p.likes + p.comments + p.shares + p.saves;
+    const rate = p.reach > 0 ? ((eng / p.reach) * 100).toFixed(2) : '0.00';
+    return `<tr>
+      <td>${p.date}</td><td>${p.title}</td>
+      <td><span class="post-type-badge ${p.type}">${p.type}</span></td>
+      <td>${p.likes.toLocaleString()}</td><td>${p.comments.toLocaleString()}</td>
+      <td>${p.shares.toLocaleString()}</td><td>${p.saves.toLocaleString()}</td>
+      <td>${p.reach.toLocaleString()}</td><td>${p.impressions.toLocaleString()}</td>
+      <td><strong>${rate}%</strong></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deletePost(${p.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTopContent() {
+  const posts = getFilteredPosts();
+  const ranked = [...posts].map(p => ({
+    ...p,
+    engagement: p.likes + p.comments + p.shares + p.saves,
+    engRate: p.reach > 0 ? ((p.likes + p.comments + p.shares + p.saves) / p.reach * 100) : 0,
+  })).sort((a, b) => b.engagement - a.engagement);
+
+  const top5 = ranked.slice(0, 5);
+
+  document.getElementById('topContentGrid').innerHTML = top5.map((p, i) => `
+    <div class="account-card">
+      <div class="ranking-badge">${i + 1}</div>
+      <div style="padding-right:30px;margin-bottom:10px;"><strong>${p.title}</strong></div>
+      <div style="margin-bottom:10px;"><span class="post-type-badge ${p.type}">${p.type}</span></div>
+      <div class="account-card-stats">
+        <div class="account-card-stat"><span class="account-card-stat-label">Engagement</span><span class="account-card-stat-value">${p.engagement.toLocaleString()}</span></div>
+        <div class="account-card-stat"><span class="account-card-stat-label">Eng. Rate</span><span class="account-card-stat-value">${p.engRate.toFixed(2)}%</span></div>
+        <div class="account-card-stat"><span class="account-card-stat-label">Likes</span><span class="account-card-stat-value">${p.likes.toLocaleString()}</span></div>
+        <div class="account-card-stat"><span class="account-card-stat-label">Alcance</span><span class="account-card-stat-value">${p.reach.toLocaleString()}</span></div>
+      </div>
+    </div>
+  `).join('');
+
+  destroyChart('topEngagement');
+  destroyChart('topReach');
+
+  if (top5.length > 0) {
+    const shortLabels = top5.map(p => p.title.length > 18 ? p.title.slice(0, 18) + '…' : p.title);
+
+    // Opciones específicas para barras horizontales — NO heredar chartDefaults.scales
+    // porque los ejes se invierten con indexAxis: 'y'
+    const horizontalBarOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { color: '#55556a', font: { family: 'Space Mono', size: 10 } },
+          grid: { color: 'rgba(42,42,58,0.5)' }
+        },
+        y: {
+          ticks: { color: '#8888a0', font: { family: 'Sora', size: 11 } },
+          grid: { display: false }
+        }
+      }
+    };
+
+    charts.topEngagement = new Chart(document.getElementById('topEngagementChart'), {
+      type: 'bar',
+      data: {
+        labels: shortLabels,
+        datasets: [{
+          label: 'Engagement',
+          data: top5.map(p => p.engagement),
+          backgroundColor: ['#e84393', '#6c5ce7', '#00cec9', '#fdcb6e', '#00b894'],
+          borderRadius: 8
+        }]
+      },
+      options: horizontalBarOptions
+    });
+
+    charts.topReach = new Chart(document.getElementById('topReachChart'), {
+      type: 'bar',
+      data: {
+        labels: shortLabels,
+        datasets: [{
+          label: 'Alcance',
+          data: top5.map(p => p.reach),
+          backgroundColor: ['#00b894', '#fdcb6e', '#00cec9', '#6c5ce7', '#e84393'],
+          borderRadius: 8
+        }]
+      },
+      options: horizontalBarOptions
+    });
+  }
+}
+
+function renderGrowth() {
+  const periods = loadPeriods();
+  const posts = getFilteredPosts();
+
+  const totalNewFollowers = periods.reduce((s, p) => s + p.newFollowers, 0);
+  const latestFollowers = periods.length > 0 ? periods[periods.length - 1].followers : 0;
+  const totalPeriodReach = periods.reduce((s, p) => s + p.reach, 0);
+
+  document.getElementById('growthKpiGrid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Seguidores Actual</div><div class="kpi-value">${latestFollowers.toLocaleString()}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Nuevos (total)</div><div class="kpi-value">+${totalNewFollowers.toLocaleString()}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Alcance Acumul.</div><div class="kpi-value">${totalPeriodReach.toLocaleString()}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Períodos</div><div class="kpi-value">${periods.length}</div></div>
+  `;
+
+  destroyChart('followers');
+  if (periods.length > 0) {
+    charts.followers = new Chart(document.getElementById('followersChart'), {
+      type: 'line',
+      data: {
+        labels: periods.map(p => p.name),
+        datasets: [{
+          label: 'Seguidores', data: periods.map(p => p.followers),
+          borderColor: '#00b894', backgroundColor: 'rgba(0,184,148,0.1)',
+          fill: true, tension: 0.4, pointBackgroundColor: '#00b894', pointRadius: 5,
+        }]
+      },
+      options: chartDefaults
+    });
+  }
+
+  destroyChart('engRateOverTime');
+  if (periods.length > 0) {
+    const periodEngRates = periods.map(p => {
+      const periodPosts = posts.filter(post => post.date >= p.start && post.date <= p.end);
+      if (periodPosts.length === 0) return 0;
+      const totalEng = periodPosts.reduce((s, pp) => s + pp.likes + pp.comments + pp.shares + pp.saves, 0);
+      const totalReach = periodPosts.reduce((s, pp) => s + pp.reach, 0);
+      return totalReach > 0 ? ((totalEng / totalReach) * 100).toFixed(2) : 0;
+    });
+
+    charts.engRateOverTime = new Chart(document.getElementById('engRateOverTimeChart'), {
+      type: 'line',
+      data: {
+        labels: periods.map(p => p.name),
+        datasets: [{
+          label: 'Eng. Rate %', data: periodEngRates,
+          borderColor: '#e84393', backgroundColor: 'rgba(232,67,147,0.1)',
+          fill: true, tension: 0.4, pointBackgroundColor: '#e84393', pointRadius: 5,
+        }]
+      },
+      options: chartDefaults
+    });
+  }
+
+  const tbody = document.getElementById('periodsTableBody');
+  tbody.innerHTML = periods.map(p => {
+    const periodPosts = posts.filter(post => post.date >= p.start && post.date <= p.end);
+    const totalLikes = periodPosts.reduce((s, pp) => s + pp.likes, 0);
+    const totalEng = periodPosts.reduce((s, pp) => s + pp.likes + pp.comments + pp.shares + pp.saves, 0);
+    const totalReach = periodPosts.reduce((s, pp) => s + pp.reach, 0);
+    const avgRate = totalReach > 0 ? ((totalEng / totalReach) * 100).toFixed(2) : '0.00';
+
+    return `<tr>
+      <td><strong>${p.name}</strong><br><span style="font-size:0.72rem;color:var(--text-muted)">${p.start} → ${p.end}</span></td>
+      <td>${p.followers.toLocaleString()}</td>
+      <td style="color:var(--success)">+${p.newFollowers.toLocaleString()}</td>
+      <td>${periodPosts.length}</td>
+      <td>${totalLikes.toLocaleString()}</td>
+      <td>${avgRate}%</td>
+      <td>${p.reach.toLocaleString()}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deletePeriod(${p.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ========== TABS ==========
+function switchTab(tab, el) {
+  document.querySelectorAll('#profile-view .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['overview', 'posts', 'top', 'growth'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'posts') renderPostsTable();
+  if (tab === 'top') renderTopContent();
+  if (tab === 'growth') renderGrowth();
+}
+
+// ========== FOLLOWERS MINI-MODAL (auto-balance) ==========
+function openFollowersModal() {
+  const p = window._pendingPeriod;
+  if (!p) return;
+
+  document.getElementById('followersModalInfo').textContent =
+    `Se importaron ${p.postCount} publicaciones. Completá los seguidores para crear el balance automáticamente.`;
+  document.getElementById('fmPeriodRange').textContent = `${p.start} → ${p.end}`;
+  document.getElementById('fmPostCount').textContent = p.postCount;
+  document.getElementById('fmReach').textContent = p.reach.toLocaleString();
+  document.getElementById('fmImpressions').textContent = p.impressions.toLocaleString();
+  document.getElementById('fmFollowers').value = '';
+  document.getElementById('fmNewFollowers').value = '';
+
+  document.getElementById('followersModal').classList.add('active');
+}
+
+function skipFollowersModal() {
+  document.getElementById('followersModal').classList.remove('active');
+  window._pendingPeriod = null;
+  showToast('ℹ️ Balance omitido — podés crearlo después desde "📅 Balance"');
+}
+
+function saveFollowersModal() {
+  const p = window._pendingPeriod;
+  if (!p) return;
+
+  const followers = parseInt(document.getElementById('fmFollowers').value) || 0;
+  const newFollowers = parseInt(document.getElementById('fmNewFollowers').value) || 0;
+
+  const period = {
+    id: Date.now(),
+    name: p.name,
+    start: p.start,
+    end: p.end,
+    followers: followers,
+    newFollowers: newFollowers,
+    reach: p.reach,
+    impressions: p.impressions,
+    notes: `Auto-generado desde CSV (${p.postCount} posts)`,
+  };
+
+  const periods = loadPeriods();
+  periods.push(period);
+  savePeriods(periods);
+
+  document.getElementById('followersModal').classList.remove('active');
+  window._pendingPeriod = null;
+  showToast('✅ Balance del período creado automáticamente');
+  renderDashboard();
+}
+
+// ========== POST/PERIOD MODALS ==========
+function openManualModal() {
+  document.getElementById('postDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('manualModal').classList.add('active');
+}
+function closeManualModal() { document.getElementById('manualModal').classList.remove('active'); }
+function openPeriodModal() { document.getElementById('periodModal').classList.add('active'); }
+function closePeriodModal() { document.getElementById('periodModal').classList.remove('active'); }
+
+function savePost() {
+  const post = {
+    id: Date.now(),
+    date: document.getElementById('postDate').value,
+    title: document.getElementById('postTitle').value || 'Sin título',
+    type: document.getElementById('postType').value,
+    likes: parseInt(document.getElementById('postLikes').value) || 0,
+    comments: parseInt(document.getElementById('postComments').value) || 0,
+    shares: parseInt(document.getElementById('postShares').value) || 0,
+    saves: parseInt(document.getElementById('postSaves').value) || 0,
+    reach: parseInt(document.getElementById('postReach').value) || 0,
+    impressions: parseInt(document.getElementById('postImpressions').value) || 0,
+  };
+  const posts = loadPosts();
+  posts.push(post);
+  savePosts(posts);
+  closeManualModal();
+  showToast('✅ Publicación guardada');
+  renderDashboard();
+}
+
+function savePeriod() {
+  const period = {
+    id: Date.now(),
+    name: document.getElementById('periodName').value || 'Sin nombre',
+    start: document.getElementById('periodStart').value,
+    end: document.getElementById('periodEnd').value,
+    followers: parseInt(document.getElementById('periodFollowers').value) || 0,
+    newFollowers: parseInt(document.getElementById('periodNewFollowers').value) || 0,
+    reach: parseInt(document.getElementById('periodReach').value) || 0,
+    impressions: parseInt(document.getElementById('periodImpressions').value) || 0,
+    notes: document.getElementById('periodNotes').value || '',
+  };
+  const periods = loadPeriods();
+  periods.push(period);
+  savePeriods(periods);
+  closePeriodModal();
+  showToast('✅ Balance guardado');
+  renderDashboard();
+}
+
+function deletePost(id) {
+  const posts = loadPosts().filter(p => p.id !== id);
+  savePosts(posts);
+  showToast('🗑 Post eliminado');
+  renderDashboard();
+}
+
+function deletePeriod(id) {
+  const periods = loadPeriods().filter(p => p.id !== id);
+  savePeriods(periods);
+  showToast('🗑 Período eliminado');
+  renderDashboard();
+}
+
+// ========== CSV IMPORT / EXPORT ==========
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => parseCSV(e.target.result);
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// Parser CSV real que maneja comillas dobles y comas dentro de campos
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result.map(s => s.trim());
+}
+
+function parseCSVText(text) {
+  // Sacar BOM si lo tiene
+  text = text.replace(/^\uFEFF/, '');
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        current += '""';
+        i++;
+      } else {
+        current += char;
+        inQuotes = !inQuotes;
+      }
+    } else if (char === '\n' && !inQuotes) {
+      if (current.trim()) rows.push(current);
+      current = '';
+    } else if (char === '\r' && !inQuotes) {
+      // ignorar CR
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) rows.push(current);
+  return rows.map(parseCSVLine);
+}
+
+function parseCSV(text) {
+  const rows = parseCSVText(text);
+  if (rows.length < 2) { showToast('⚠️ CSV vacío'); return; }
+
+  // Normalizar headers: lowercase + quitar acentos + trim
+  const normalize = (s) => s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  const headers = rows[0].map(normalize);
+  const posts = loadPosts();
+  let count = 0;
+  let skipped = 0;
+
+  // Buscar columna por nombre EXACTO (no "contiene") para evitar confusiones
+  // entre "Comentarios" (reales) y "Comentario sobre los datos" (metadata)
+  const exactCol = (names) => {
+    for (const n of names) {
+      const target = normalize(n);
+      const idx = headers.findIndex(h => h === target);
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+
+  // Mapeo exacto de columnas de Meta Business Suite (español + inglés)
+  const dateIdx = exactCol(['Hora de publicación', 'Publish time', 'Fecha de publicación']);
+  const titleIdx = exactCol(['Descripción', 'Description', 'Título', 'Title', 'Caption']);
+  const typeIdx = exactCol(['Tipo de publicación', 'Post type']);
+  const likesIdx = exactCol(['Me gusta', 'Likes']);
+  const commentsIdx = exactCol(['Comentarios', 'Comments']);
+  const sharesIdx = exactCol(['Veces que se compartió', 'Shares']);
+  const savesIdx = exactCol(['Veces que se guardó', 'Saves']);
+  const reachIdx = exactCol(['Alcance', 'Reach']);
+  const impressionsIdx = exactCol(['Visualizaciones', 'Impresiones', 'Views', 'Impressions']);
+
+  // Validar que se encontraron las columnas clave
+  if (likesIdx === -1 || reachIdx === -1) {
+    showToast('⚠️ No se detectaron columnas de Meta. Verificá el CSV.');
+    console.log('Headers detectados:', headers);
+    return;
+  }
+
+  for (let i = 1; i < rows.length; i++) {
+    const vals = rows[i];
+    if (vals.length < 4) { skipped++; continue; }
+
+    const getVal = (idx) => idx >= 0 && idx < vals.length ? vals[idx].trim() : '';
+    const getNum = (idx) => {
+      const v = getVal(idx).replace(/[^\d-]/g, '');
+      return parseInt(v) || 0;
+    };
+
+    // Parsear fecha — Meta usa MM/DD/YYYY HH:MM
+    let dateVal = getVal(dateIdx);
+    if (dateVal) {
+      dateVal = dateVal.split(' ')[0]; // sacar hora
+      if (!dateVal.match(/^\d{4}/)) {
+        const parts = dateVal.split(/[\/\-\.]/);
+        if (parts.length === 3) {
+          if (parts[2].length === 4) {
+            // MM/DD/YYYY → YYYY-MM-DD
+            dateVal = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+          } else {
+            dateVal = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+          }
+        }
+      }
+    }
+
+    // Detectar tipo de publicación
+    let typeVal = getVal(typeIdx).toLowerCase();
+    if (typeVal.includes('reel') || typeVal.includes('video')) typeVal = 'reel';
+    else if (typeVal.includes('secuencia') || typeVal.includes('carousel') || typeVal.includes('carrusel') || typeVal.includes('album')) typeVal = 'carousel';
+    else if (typeVal.includes('story') || typeVal.includes('historia')) typeVal = 'story';
+    else typeVal = 'image';
+
+    // Título desde descripción
+    let title = getVal(titleIdx);
+    if (!title || title.length === 0) {
+      title = `Post sin descripción`;
+    } else if (title.length > 80) {
+      title = title.slice(0, 77) + '…';
+    }
+
+    posts.push({
+      id: Date.now() + i + Math.floor(Math.random() * 10000),
+      date: dateVal || new Date().toISOString().slice(0, 10),
+      title,
+      type: typeVal,
+      likes: getNum(likesIdx),
+      comments: getNum(commentsIdx),
+      shares: getNum(sharesIdx),
+      saves: getNum(savesIdx),
+      reach: getNum(reachIdx),
+      impressions: getNum(impressionsIdx),
+    });
+    count++;
+  }
+
+  savePosts(posts);
+  showToast(`✅ ${count} publicaciones importadas${skipped > 0 ? ` (${skipped} omitidas)` : ''}`);
+  renderDashboard();
+
+  // ---- AUTO-BALANCE: calcular totales del período desde los posts importados ----
+  if (count > 0) {
+    // Obtener rango de fechas de los posts recién importados
+    const importedPosts = posts.slice(-count);
+    const dates = importedPosts.map(p => p.date).filter(d => d).sort();
+    const periodStart = dates[0] || new Date().toISOString().slice(0, 10);
+    const periodEnd = dates[dates.length - 1] || new Date().toISOString().slice(0, 10);
+
+    // Calcular totales
+    const totalReach = importedPosts.reduce((s, p) => s + p.reach, 0);
+    const totalImpressions = importedPosts.reduce((s, p) => s + p.impressions, 0);
+
+    // Formatear nombre del período
+    const startParts = periodStart.split('-');
+    const endParts = periodEnd.split('-');
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const periodName = `${meses[parseInt(startParts[1])-1]} ${startParts[0]} → ${meses[parseInt(endParts[1])-1]} ${endParts[0]}`;
+
+    // Guardar temporalmente los datos calculados
+    window._pendingPeriod = {
+      name: periodName,
+      start: periodStart,
+      end: periodEnd,
+      reach: totalReach,
+      impressions: totalImpressions,
+      postCount: count
+    };
+
+    // Abrir mini-modal para pedir solo seguidores
+    openFollowersModal();
+  }
+}
+
+function exportData() {
+  const profile = getCurrentProfile();
+  const posts = loadPosts();
+  if (posts.length === 0) { showToast('⚠️ Sin datos'); return; }
+
+  let csv = 'Fecha,Titulo,Tipo,Likes,Comentarios,Shares,Saves,Alcance,Impresiones\n';
+  posts.forEach(p => {
+    csv += `${p.date},"${p.title}",${p.type},${p.likes},${p.comments},${p.shares},${p.saves},${p.reach},${p.impressions}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${profile.handle.replace('@', '')}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('💾 CSV exportado');
+}
+
+// ========== DRAG & DROP ==========
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    ['dragover', 'dragenter'].forEach(ev => {
+      dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      dropZone.addEventListener(ev, () => dropZone.classList.remove('dragover'));
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => parseCSV(ev.target.result);
+        reader.readAsText(file);
+      }
+    });
+  }
+});
+
+// ========== INIT ==========
+function init() {
+  renderSidebar();
+  const savedId = localStorage.getItem(CURRENT_KEY);
+  if (savedId && loadProfiles().find(p => p.id === savedId)) {
+    selectProfile(savedId);
+  } else {
+    showAgencyView();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
